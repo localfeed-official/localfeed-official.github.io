@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>콘텐츠 확인 · 로컬피드 LocalFeed</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.acct{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:16px 0;font-size:15px}
+.item{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:22px}
+.item h3{margin:0 0 10px}
+.player{position:relative;width:100%;max-width:360px;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:#000}
+.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.b{border:0;border-radius:999px;padding:13px 22px;font-weight:800;font-size:16px;cursor:pointer}
+.yes{background:var(--navy);color:var(--yellow)}
+.no{background:#fff;color:var(--navy);border:2px solid var(--navy)}
+.tag{display:inline-block;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:800;background:#f4efe0}
+.tag.done{background:#d8f3e3;color:#1e6b3f}
+.tag.fail{background:#fde2e0;color:#b3261e}
+textarea{width:100%;min-height:80px;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
+.note{margin-top:10px}
+.err{color:#b3261e}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap"><nav><a class="logo" href="index.html">Local<b>Feed</b></a></nav></div>
+</header>
+<main class="wrap">
+  <h1>이번 주 콘텐츠 확인</h1>
+  <p id="storeName"></p>
+  <div class="acct" id="acct"></div>
+  <div id="list"><p>불러오는 중…</p></div>
+  <p id="err" class="err" hidden></p>
+</main>
+<script src="config.js"></script>
+<script>
+(function(){
+  var q=new URLSearchParams(location.search);
+  var store=q.get('store'), key=q.get('key');
+  var list=document.getElementById('list');
+  var LABEL={'대기':'확인 대기','올리는중':'보내는 중','초안전송':'틱톡 초안함으로 보냄','게시완료':'게시 완료','수정요청':'수정 요청함','실패':'보내기 실패'};
+  function err(t){var e=document.getElementById('err');e.hidden=false;e.textContent=t;}
+  function el(tag,cls,text){var x=document.createElement(tag);if(cls)x.className=cls;if(text!=null)x.textContent=text;return x;}
+
+  function render(r){
+    document.getElementById('storeName').textContent=r.store;
+    document.getElementById('acct').textContent=r.connected
+      ? '연결된 틱톡 계정: '+(r.tiktok||'연결됨')+' · 좋아요를 누르면 이 계정의 초안함으로 갑니다.'
+      : '틱톡이 아직 연결되지 않았습니다. 담당자가 보내드린 연결 링크를 먼저 열어 주세요.';
+    list.innerHTML='';
+    if(!r.videos.length){list.appendChild(el('p',null,'확인할 영상이 없습니다.'));return;}
+    r.videos.forEach(function(v){
+      var box=el('div','item');
+      box.appendChild(el('h3',null,v.title||'영상'));
+      var tag=el('span','tag'+(v.status==='초안전송'||v.status==='게시완료'?' done':v.status==='실패'?' fail':''),LABEL[v.status]||v.status);
+      box.appendChild(tag);
+      var p=el('div','player'); var f=document.createElement('iframe'); f.src=v.preview; f.allow='autoplay'; p.appendChild(f);
+      var wrap=el('div'); wrap.style.marginTop='12px'; wrap.appendChild(p); box.appendChild(wrap);
+      if(v.memo) box.appendChild(el('p','note',(v.status==='실패'?'사유: ':'요청 내용: ')+v.memo));
+      if(v.status==='대기'||v.status==='실패'||v.status==='수정요청'){
+        var row=el('div','row');
+        var yes=el('button','b yes','좋아요 · 틱톡 초안함으로 보내기');
+        var no=el('button','b no','바꿔주세요');
+        row.appendChild(yes);row.appendChild(no);box.appendChild(row);
+        var ta=el('textarea');ta.placeholder='어떻게 바꿀지 적어 주세요';ta.hidden=true;box.appendChild(ta);
+        var send=el('button','b no','수정 요청 보내기');send.hidden=true;send.style.marginTop='8px';box.appendChild(send);
+        yes.onclick=function(){
+          if(!r.connected){alert('틱톡을 먼저 연결해 주세요.');return;}
+          yes.disabled=no.disabled=true;yes.textContent='틱톡으로 보내는 중…';
+          lfApi({action:'approve',store:store,key:key,id:v.id}).then(function(x){
+            if(!x.ok) throw new Error(x.error);
+            alert('틱톡 초안함으로 보냈습니다.\n틱톡 앱 알림(받은편지함)을 눌러 확인하고 게시해 주세요.');
+            load();
+          }).catch(function(e){alert('보내지 못했습니다: '+e.message);load();});
+        };
+        no.onclick=function(){ta.hidden=false;send.hidden=false;ta.focus();};
+        send.onclick=function(){
+          send.disabled=true;
+          lfApi({action:'revise',store:store,key:key,id:v.id,memo:ta.value}).then(function(x){
+            if(!x.ok) throw new Error(x.error); load();
+          }).catch(function(e){alert(e.message);send.disabled=false;});
+        };
+      }
+      if(v.status==='초안전송'){
+        box.appendChild(el('p','note','틱톡 앱의 받은편지함 알림을 눌러 게시를 마쳐 주세요.'));
+      }
+      list.appendChild(box);
+    });
+  }
+  function load(){
+    lfApi({action:'list',store:store,key:key}).then(function(r){if(!r.ok) throw new Error(r.error);render(r);})
+      .catch(function(e){list.innerHTML='';err(e.message);});
+  }
+  if(!store||!key){list.innerHTML='';err('확인 링크가 올바르지 않습니다.');return;}
+  load();
+})();
+</script>
+</body>
+</html>
