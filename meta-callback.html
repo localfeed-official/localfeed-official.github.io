@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>연결 · 로컬피드 LocalFeed</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-top:20px;display:flex;gap:16px;align-items:center}
+.box img{width:64px;height:64px;border-radius:50%}
+.err{color:#b3261e}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap"><nav><a class="logo" href="index.html">Local<b>Feed</b></a></nav></div>
+</header>
+<main class="wrap">
+  <h1 id="title">연결하는 중입니다…</h1>
+  <div id="ok" hidden>
+    <div class="box"><img id="avatar" alt=""><div><b id="name"></b><br><span id="store"></span></div></div>
+    <p id="done"></p>
+    <p class="en">Your account is connected. LocalFeed only publishes posts you approved on the review page.</p>
+  </div>
+  <p id="err" class="err" hidden></p>
+</main>
+<script src="config.js"></script>
+<script>
+(function(){
+  var q=new URLSearchParams(location.search);
+  var code=q.get('code'), state=q.get('state'), e=q.get('error');
+  var title=document.getElementById('title'), err=document.getElementById('err');
+  function fail(t){title.textContent='연결이 완료되지 않았습니다';err.hidden=false;err.textContent=t;}
+  if(!code){fail(e?('사유: '+(q.get('error_description')||q.get('error_reason')||e)):'연결 정보가 없습니다.');return;}
+  history.replaceState(null,'',location.pathname);
+  lfApi({action:'meta_exchange',code:code,state:state}).then(function(r){
+    if(!r.ok) throw new Error(r.error);
+    var n=r.ch==='th'?'스레드':'인스타그램';
+    title.textContent=n+'이 연결되었습니다';
+    document.getElementById('ok').hidden=false;
+    document.getElementById('name').textContent='@'+(r.username||'');
+    document.getElementById('store').textContent=r.store||'';
+    document.getElementById('done').textContent='앞으로 확인 페이지에서 승인하신 콘텐츠만 정해진 날에 '+n+'에 올라갑니다.';
+    if(r.avatar) document.getElementById('avatar').src=r.avatar; else document.getElementById('avatar').remove();
+  }).catch(function(x){fail(x.message);});
+})();
+</script>
+</body>
+</html>
