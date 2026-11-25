@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>로컬피드 시작하기</title>
+<link rel="icon" href="icons/logo.svg">
 <link rel="stylesheet" href="a.css">
 </head>
 <body>
 <div class="phone">
+  <div class="brand"><img src="icons/logo.svg" alt=""><b>로컬피드</b><span>LocalFeed</span></div>
   <div class="top"><h1 id="h1">불러오는 중…</h1><p id="sub"></p></div>
   <div id="app"></div>
-  <p class="foot">비밀번호는 어디에도 적지 않아요. 연결은 언제든 끊을 수 있어요.<br><a href="index.html">로컬피드 안내</a> · <a href="privacy.html">개인정보처리방침</a></p>
+  <p class="foot">비밀번호는 어디에도 적지 않아요. 연결은 언제든 끊을 수 있어요.<br><b>로컬피드</b> · 동네 가게 SNS를 대신 올려 드려요<br><a href="index.html">로컬피드 안내</a> · <a href="privacy.html">개인정보처리방침</a></p>
 </div>
 <script src="config.js"></script>
 <script>
@@ -105,6 +107,15 @@
     }
     return c;
   }
+  function md(d){var p=String(d||'').split('-');return p.length===3?(+p[1])+'월 '+(+p[2])+'일':'';}
+  function planCard(){
+    var p=S.plan; if(!p||p.status==='시작 전') return '';
+    var t,s2,cls='soft';
+    if(p.status==='무료 체험'){ if(p.over){t='무료 체험이 끝났어요';s2='계속 이용하시려면 로컬피드에 알려 주세요';cls='warn';} else {t='무료 체험 중 · '+(p.left===0?'오늘까지':p.left+'일 남았어요');s2=md(p.trialEnd)+'까지 무료예요';} }
+    else if(p.status==='유료'){ t='이용 중';s2='다음 결제일 '+md(p.nextPay)+(p.fee?' · 월 '+esc(p.fee):''); cls=p.over?'warn':'ok'; if(p.over) t='결제일이 지났어요'; }
+    else { t='이용이 멈춰 있어요';s2='다시 시작하시려면 로컬피드에 알려 주세요';cls='warn'; }
+    return '<div class="card plan"><span class="chip '+cls+'">'+t+'</span><span>'+s2+'</span></div>';
+  }
   function render(){
     var st=steps(), done=st.filter(function(x){return x.done}).length, total=st.length;
     var cur=null,i; for(i=0;i<st.length;i++){ if(!st[i].done&&!st[i].lock&&!st[i].wait){cur=i;break;} }
@@ -112,7 +123,7 @@
     document.title=S.store.name+' · 로컬피드';
     if(done===total){h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';}
     else{h1.innerHTML='대표님, '+total+'가지만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
-    var html='<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'하나씩 차례로 해요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
+    var html=planCard()+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'하나씩 차례로 해요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
     function rows(list){return '<div class="card tight">'+list.map(function(x){
       var chip=x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
       var name=x.s.id==='ig'&&S.igName?S.igName:x.s.id==='th'&&S.thName?S.thName:x.s.id==='tt'&&S.ttName?S.ttName:x.s.d;
