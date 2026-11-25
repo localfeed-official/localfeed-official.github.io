@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>로컬피드 운영</title>
+<link rel="stylesheet" href="a.css">
+</head>
+<body>
+<div class="wide">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+    <div><div style="font-size:14px;color:var(--s)" id="date"></div><h1 id="h1">불러오는 중…</h1></div>
+    <button class="btn sm gray" id="reload">새로고침</button>
+  </div>
+  <p class="msg" id="msg"></p>
+  <div class="box"><h2>지금 손대야 할 것</h2><div id="todos"></div></div>
+  <div class="box"><h2>매장</h2>
+    <div class="form"><input class="in" id="nName" placeholder="매장 이름 (예: 결 헤어)"><input class="in" id="nDong" placeholder="동네"><input class="in" id="nInd" placeholder="업종"><button class="btn sm" id="add" style="padding:14px 18px">매장 추가</button></div>
+    <table class="tbl"><thead><tr><th>매장</th><th>시작하기</th><th>인스타</th><th>스레드</th><th>당근</th><th>틱톡</th><th>블로그</th><th></th></tr></thead><tbody id="stores"></tbody></table>
+  </div>
+</div>
+<script src="config.js"></script>
+<script>
+(function(){
+  var q=new URLSearchParams(location.search), K;
+  try{K=q.get('k')||localStorage.getItem('lf_admin'); if(q.get('k')){localStorage.setItem('lf_admin',K);history.replaceState(null,'',location.pathname);}}catch(e){K=q.get('k');}
+  var $=function(id){return document.getElementById(id)}, D=null;
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function say(t){$('msg').textContent=t||'';}
+  function copy(t,btn){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){var o=btn.textContent;btn.textContent='복사됨';setTimeout(function(){btn.textContent=o},1200);}).catch(function(){window.prompt('길게 눌러 복사하세요',t);}); }
+  function call(body,btn){ say(''); if(btn) btn.disabled=true; body.k=K;
+    return lfApi(body).then(function(r){ if(!r.ok) throw new Error(r.error); D=r; render(); }).catch(function(e){ say(e.message); if(btn) btn.disabled=false; }); }
+  function chip(state,doneText){ return state==='done'?'<span class="chip ok">'+esc(doneText||'연결')+'</span>':state==='sent'?'<span class="chip warn">수락 필요</span>':'<span class="chip">대기</span>'; }
+  function logo(f){return '<div class="tile logo"><img src="icons/'+f+'" alt=""></div>';}
+  function render(){
+    var d=new Date(); $('date').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일';
+    $('h1').textContent='오늘 할 일 '+D.todos.length+'건';
+    $('todos').innerHTML=D.todos.length?D.todos.map(function(t,i){
+      if(t.kind==='tester') return '<div class="alert">'+logo('instagram.png')+'<div class="g"><b>'+esc(t.name)+' · 인스타 비즈니스 전환 완료 → 테스터 등록</b><small>아이디 '+esc(t.igId)+' · '+esc(t.at)+'에 대표님이 눌렀어요 · Instagram 테스터와 Threads 테스터 둘 다 추가</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc(t.igId)+'">아이디 복사</button><a class="btn sm gray" target="_blank" rel="noopener" href="'+esc(D.roles)+'">Meta 역할 페이지 열기</a><button class="btn sm" data-done="tester" data-store="'+esc(t.store)+'">등록했어요</button></div></div>';
+      return '<div class="alert">'+logo('daangn.png')+'<div class="g"><b>'+esc(t.name)+' · 당근 초대 링크 도착</b><small>로컬피드 당근 계정이 로그인된 휴대폰에서 열어 수락하세요. 수락하면 링크는 지워집니다.</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc(t.link)+'">링크 복사</button><a class="btn sm gray" target="_blank" rel="noopener noreferrer" href="'+esc(t.link)+'">초대 링크 열기</a><button class="btn sm" data-done="daangn" data-store="'+esc(t.store)+'">수락했어요</button></div></div>';
+    }).join(''):'<p style="color:var(--s);font-size:14px;padding:6px 0 14px">지금 할 일이 없습니다.</p>';
+    $('stores').innerHTML=D.stores.map(function(s){
+      var st=s.steps, n=['place','photos','blog','daangn','igbiz','ig','th','tt'].filter(function(k){return st[k]==='done'}).length;
+      return '<tr><td><b>'+esc(s.name)+'</b><small>'+esc([s.dong,s.industry,s.code].filter(Boolean).join(' · '))+'</small></td>'+
+        '<td><span class="chip '+(n===8?'ok':'soft')+'">'+n+' / 8</span></td>'+
+        '<td>'+(st.ig==='done'?chip('done',s.igName):st.igbiz==='done'&&st.tester!=='done'?'<span class="chip warn">테스터 등록</span>':chip('todo'))+'</td>'+
+        '<td>'+chip(st.th,s.thName)+'</td><td>'+chip(st.daangn,'수락')+'</td><td>'+chip(st.tt,s.ttName)+'</td><td>'+chip(st.blog,'주소 받음')+'</td>'+
+        '<td style="text-align:right"><button class="btn sm sec" data-copy="'+esc(s.link)+'">링크 복사</button></td></tr>';
+    }).join('');
+    [].forEach.call(document.querySelectorAll('[data-copy]'),function(b){b.onclick=function(){copy(b.dataset.copy,b);};});
+    [].forEach.call(document.querySelectorAll('[data-done]'),function(b){b.onclick=function(){
+      var v=''; if(b.dataset.done==='daangn'){ v=window.prompt('당근비즈니스에서 이 매장의 프로필 번호(주소의 biz_accounts 뒤 숫자)를 적어 주세요. 모르면 비워 두세요.','')||''; }
+      call({action:'admin_done',store:b.dataset.store,what:b.dataset.done,value:v},b);
+    };});
+  }
+  if(!K){$('h1').textContent='운영 화면 주소가 필요합니다';say('시트 메뉴 "9. 운영 화면 주소 만들기"에서 받은 주소로 들어와 주세요.');return;}
+  $('reload').onclick=function(){call({action:'admin_state'});};
+  $('add').onclick=function(){ call({action:'admin_add',name:$('nName').value,dong:$('nDong').value,industry:$('nInd').value},$('add')).then(function(){$('add').disabled=false;$('nName').value=$('nDong').value=$('nInd').value='';}); };
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden&&D) call({action:'admin_state'}); });
+  call({action:'admin_state'}).then(function(){ if(!D) $('h1').textContent='열 수 없습니다'; });
+})();
+</script>
+</body>
+</html>

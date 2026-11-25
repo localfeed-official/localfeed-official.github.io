@@ -24,6 +24,7 @@
     <p class="en">Your account is connected. LocalFeed only publishes posts you approved on the review page.</p>
   </div>
   <p id="err" class="err" hidden></p>
+  <p style="margin-top:24px"><a id="back" href="my.html" style="display:inline-block;background:#2B64F5;color:#fff;border-radius:14px;padding:14px 20px;font-weight:700;text-decoration:none">시작하기로 돌아가기</a></p>
 </main>
 <script src="config.js"></script>
 <script>
@@ -31,13 +32,15 @@
   var q=new URLSearchParams(location.search);
   var code=q.get('code'), state=q.get('state'), e=q.get('error');
   var title=document.getElementById('title'), err=document.getElementById('err');
+  var back=document.getElementById('back');
   function fail(t){title.textContent='연결이 완료되지 않았습니다';err.hidden=false;err.textContent=t;}
-  if(!code){fail(e?('사유: '+(q.get('error_description')||q.get('error_reason')||e)):'연결 정보가 없습니다.');return;}
+  function cancelled(){title.textContent='연결을 취소하셨어요';err.hidden=false;err.style.color='inherit';err.textContent='다시 시도해 주세요. 영어 화면에서는 Cancel이 아니라 아래쪽 파란 버튼을 누르면 됩니다.';back.textContent='시작하기로 돌아가 다시 연결';}
+  if(!code){ if(e) cancelled(); else fail('연결 정보가 없습니다.'); return; }
   history.replaceState(null,'',location.pathname);
   lfApi({action:'meta_exchange',code:code,state:state}).then(function(r){
     if(!r.ok) throw new Error(r.error);
     var n=r.ch==='th'?'스레드':'인스타그램';
-    title.textContent=n+'이 연결되었습니다';
+    title.textContent=n+(r.ch==='th'?'가':'이')+' 연결되었습니다';
     document.getElementById('ok').hidden=false;
     document.getElementById('name').textContent='@'+(r.username||'');
     document.getElementById('store').textContent=r.store||'';
