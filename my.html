@@ -233,11 +233,11 @@
     document.title=S.store.name+' · 로컬피드';
     if(done===total){h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';}
     else{h1.innerHTML='대표님, 처음 한 번만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
-    var html=planCard()+loginCard()+svc(done,total)+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'하나씩 차례로 해요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
+    var html=planCard()+loginCard()+svc(done,total)+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'아래 줄을 누르면 순서를 바꿔 할 수 있어요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
     function rows(list){return '<div class="card tight">'+list.map(function(x){
       var chip=x.s.later?'<span class="chip warn">나중에</span>':x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
       var name=x.s.id==='ig'&&S.igName?S.igName:x.s.id==='th'&&S.thName?S.thName:x.s.id==='tt'&&S.ttName?S.ttName:x.s.d;
-      return '<div class="row'+(x.s.done?'':' dim')+'"'+(x.s.reopen&&x.s.done?' data-open="'+x.s.id+'" style="cursor:pointer"':'')+'>'+tile(x.s.ic,x.s.done&&!x.s.later)+'<div class="g"><b>'+x.s.t+'</b><small>'+esc(x.s.done&&name?name:x.s.d)+'</small></div>'+chip+'</div>';
+      return '<div class="row'+(x.s.done?'':' dim')+'"'+(!x.s.lock?' data-open="'+x.s.id+'" style="cursor:pointer"':'')+'>'+tile(x.s.ic,x.s.done&&!x.s.later)+'<div class="g"><b>'+x.s.t+'</b><small>'+esc(x.s.done&&name?name:x.s.d)+'</small></div>'+chip+'</div>';
     }).join('')+'</div>';}
     var before=[],after=[];
     st.forEach(function(s,i){ if(i===cur) return; (cur===null||i<cur?before:after).push({s:s,i:i}); });
@@ -250,6 +250,7 @@
     function pick(){ if(!codeEl||codeEl.value) return; var t=v.value.replace(/https?:\/\/\S+/g,' '); var x=t.match(/코드[^A-Za-z0-9]{0,12}([A-Za-z0-9]{6})(?![A-Za-z0-9])/)||t.match(/(?:^|[^A-Za-z0-9])(\d{6})(?![A-Za-z0-9])/); if(x) codeEl.value=x[1]; }
     if(codeEl){ v.addEventListener('input',pick); v.addEventListener('paste',function(){setTimeout(pick,0);}); }
     if(go&&cur!==null){ var id=st[cur].id; go.onclick=function(){
+      if(id!=='photos'&&id!=='voice') forced=null;
       var val=!v?'':id==='photos'?(v.checked?'agree':''):v.value;
       if(id==='daangn'){ pick(); val='코드:'+codeEl.value.trim()+' '+v.value; }
       if(id==='place'&&online){ id2='online'; val=v.value.trim()+'\n'+document.getElementById('intro').value; }
