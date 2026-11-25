@@ -216,6 +216,20 @@
     if(!S.needLogin) return '';
     return '<div class="card"><b style="font-size:17px">다음부터는 번호와 비밀번호로 들어와요</b><small style="display:block;color:var(--s);font-size:13px;margin:4px 0 14px">한 번만 정해 두면 링크 없이 어느 휴대폰에서나 들어올 수 있어요</small><label class="fld"><span>대표님 휴대폰 번호</span><input class="in" id="lgP" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" value="'+esc(S.phone||'')+'"></label><label class="fld"><span>비밀번호 (숫자 4~6자리)</span><input class="in" id="lgN" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="숫자만"></label><p class="msg" id="lgM"></p><button class="btn" id="lgB">정하기</button></div>';
   }
+  // 이번 주 기획: 로컬피드가 보낸 주제를 보고 좋아요 / 고쳐 주세요
+  var fixRow=null;
+  function plansCard(){
+    var P=S.plans||[]; if(!P.length) return '';
+    var wk=P[P.length-1].week, L=P.filter(function(p){return p.week===wk}), wait=L.filter(function(p){return /^대기/.test(p.owner)}).length;
+    var w=String(wk).split('-');
+    return '<div class="card"><b style="font-size:17px">'+(wait?'이번 주 올릴 내용을 봐 주세요':'이번 주 기획 확인이 끝났어요')+'</b><small style="display:block;color:var(--s);font-size:13px;margin:4px 0 10px">'+(+w[1])+'월 '+(+w[2])+'일 주 · '+L.length+'건'+(wait?' 중 '+wait+'건 남았어요 · 좋아요를 누른 것만 만들어요':' · 이제 로컬피드가 만들어서 다시 보여 드려요')+'</small>'+
+      L.map(function(p){ var okd=/^좋아요/.test(p.owner), fx=/^수정/.test(p.owner);
+        return '<details class="pl"'+(/^대기/.test(p.owner)&&!fixRow||fixRow===p.row?' open':'')+'><summary><span class="pf">'+esc(p.form)+'</span><b>'+esc(p.topic)+'</b><span class="ps">'+(okd?'<span class="chip ok">좋아요</span>':fx?'<span class="chip warn">고치는 중</span>':'<span class="chip soft">확인 전</span>')+'</span></summary><ol>'+p.pages.split(' / ').map(function(x){return '<li>'+esc(x.replace(/^\d+\s*/,''))+'</li>';}).join('')+'</ol>'+
+          (fx&&p.note?'<small>보내신 말: '+esc(p.note)+'</small>':'')+
+          (fixRow===p.row?'<textarea class="in" id="fixT" placeholder="예: 3번째 장은 우리 가게랑 안 맞아요. 가격 이야기는 빼 주세요" style="min-height:76px;margin-top:8px"></textarea><p class="msg" id="fixM"></p><div class="stack"><button class="btn" data-pfixgo="'+p.row+'">이렇게 고쳐 주세요</button><button class="btn gray" data-pfixno="1">취소</button></div>'
+            :okd?'':'<div class="stack" style="margin-top:10px"><button class="btn" data-pok="'+p.row+'">좋아요</button><button class="btn gray" data-pfix="'+p.row+'">고쳐 주세요</button></div>')+
+          '</details>'; }).join('')+'</div>';
+  }
   function md(d){var p=String(d||'').split('-');return p.length===3?(+p[1])+'월 '+(+p[2])+'일':'';}
   function planCard(){
     var p=S.plan; if(!p) return ''; if(p.status==='시작 전') return '<div class="card plan"><span class="chip soft">신청 접수됨</span><span>로컬피드가 확인하면 무료 체험 3주가 시작돼요. 아래는 먼저 해 두셔도 돼요</span></div>';
@@ -233,7 +247,7 @@
     document.title=S.store.name+' · 로컬피드';
     if(done===total){h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';}
     else{h1.innerHTML='대표님, 처음 한 번만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
-    var html=planCard()+loginCard()+svc(done,total)+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'아래 줄을 누르면 순서를 바꿔 할 수 있어요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
+    var html=planCard()+loginCard()+plansCard()+svc(done,total)+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'아래 줄을 누르면 순서를 바꿔 할 수 있어요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
     function rows(list){return '<div class="card tight">'+list.map(function(x){
       var chip=x.s.later?'<span class="chip warn">나중에</span>':x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
       var name=x.s.id==='ig'&&S.igName?S.igName:x.s.id==='th'&&S.thName?S.thName:x.s.id==='tt'&&S.ttName?S.ttName:x.s.d;
@@ -269,6 +283,11 @@
     if(a3) a3.onclick=function(){ if(window.confirm('당근에는 올리지 않을까요? 나중에 다시 켤 수 있어요.')) save('daangn_skip','1',a3); };
     var none=document.getElementById('none'); if(none) none.onclick=function(){save('blog','없음',none);};
     var rl=document.getElementById('reload'); if(rl) rl.onclick=load;
+    function planCall(b,row,ok,memo,M){ b.disabled=true; lfApi({action:'owner_plan',store:store,key:key,row:row,ok:ok,memo:memo}).then(function(r){ if(!r.ok) throw new Error(r.error); fixRow=null; S=norm(r); render(); }).catch(function(e){ b.disabled=false; if(M) M.textContent=e.message; else window.alert(e.message); }); }
+    [].forEach.call(document.querySelectorAll('[data-pok]'),function(b){b.onclick=function(){planCall(b,b.dataset.pok,'1','');};});
+    [].forEach.call(document.querySelectorAll('[data-pfix]'),function(b){b.onclick=function(){fixRow=+b.dataset.pfix;render();var t=document.getElementById('fixT'); if(t) t.focus();};});
+    [].forEach.call(document.querySelectorAll('[data-pfixno]'),function(b){b.onclick=function(){fixRow=null;render();};});
+    [].forEach.call(document.querySelectorAll('[data-pfixgo]'),function(b){b.onclick=function(){planCall(b,b.dataset.pfixgo,'0',document.getElementById('fixT').value,document.getElementById('fixM'));};});
     var lg=document.getElementById('lgB'); if(lg) lg.onclick=function(){ var M=document.getElementById('lgM'); M.textContent=''; lg.disabled=true;
       lfApi({action:'owner_setlogin',store:store,key:key,phone:document.getElementById('lgP').value,pin:document.getElementById('lgN').value}).then(function(r){ if(!r.ok) throw new Error(r.error); S=norm(r); render(); }).catch(function(e){ M.textContent=e.message; lg.disabled=false; }); };
     [].forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){dev=b.dataset.d;render();};});
