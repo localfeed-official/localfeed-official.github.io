@@ -13,7 +13,7 @@
   <div class="brand"><img src="icons/logo.svg" alt=""><b>로컬피드</b><span>LocalFeed</span></div>
   <div class="top"><h1 id="h1">불러오는 중…</h1><p id="sub"></p></div>
   <div id="app"></div>
-  <p class="foot">비밀번호는 어디에도 적지 않아요. 연결은 언제든 끊을 수 있어요.<br><b>로컬피드</b> · 동네 가게 SNS를 대신 올려 드려요<br><a href="index.html">로컬피드 안내</a> · <a href="privacy.html">개인정보처리방침</a></p>
+  <p class="foot">비밀번호는 어디에도 적지 않아요. 연결은 언제든 끊을 수 있어요.<br><b>로컬피드</b> · 동네 가게 SNS를 대신 올려 드려요<br><a href="index.html">로컬피드 안내</a> · <a href="#" id="logout">로그아웃</a> · <a href="privacy.html">개인정보처리방침</a></p>
 </div>
 <script src="config.js"></script>
 <script>
@@ -37,7 +37,8 @@
   }
   function norm(r){ r.files=r.files||{store:0,face:0,voice:0}; r.steps.voice=r.steps.voice||'todo'; r.steps.intro=r.steps.intro||'done'; r.intro=r.intro||{}; return r; }
   function fail(t){h1.textContent='화면을 열 수 없어요';sub.textContent=t;app.innerHTML='';}
-  if(!store||!key){fail('로컬피드가 보내드린 전용 링크로 다시 들어와 주세요.');return;}
+  if(!store||!key){location.replace('start.html');return;}
+  function out(){ try{LS.removeItem('lf_store');LS.removeItem('lf_key');}catch(e){} location.replace('start.html#login'); }
 
   // 단계 정의: id, 아이콘, 제목, 한 줄 설명, 끝났는지, 열 수 있는지
   function steps(){
@@ -210,9 +211,14 @@
       step(4,'정해진 날 자동으로 올라가요','올라가면 알려 드리고, 블로그 글만 복사해서 붙여 주세요',false)+
       '</details>';
   }
+  // 링크로 먼저 들어온 매장: 다음부터 쓸 번호와 비밀번호를 정한다
+  function loginCard(){
+    if(!S.needLogin) return '';
+    return '<div class="card"><b style="font-size:17px">다음부터는 번호와 비밀번호로 들어와요</b><small style="display:block;color:var(--s);font-size:13px;margin:4px 0 14px">한 번만 정해 두면 링크 없이 어느 휴대폰에서나 들어올 수 있어요</small><label class="fld"><span>대표님 휴대폰 번호</span><input class="in" id="lgP" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" value="'+esc(S.phone||'')+'"></label><label class="fld"><span>비밀번호 (숫자 4~6자리)</span><input class="in" id="lgN" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="숫자만"></label><p class="msg" id="lgM"></p><button class="btn" id="lgB">정하기</button></div>';
+  }
   function md(d){var p=String(d||'').split('-');return p.length===3?(+p[1])+'월 '+(+p[2])+'일':'';}
   function planCard(){
-    var p=S.plan; if(!p||p.status==='시작 전') return '';
+    var p=S.plan; if(!p) return ''; if(p.status==='시작 전') return '<div class="card plan"><span class="chip soft">신청 접수됨</span><span>로컬피드가 확인하면 무료 체험 3주가 시작돼요. 아래는 먼저 해 두셔도 돼요</span></div>';
     var t,s2,cls='soft';
     if(p.status==='무료 체험'){ if(p.over){t='무료 체험이 끝났어요';s2='계속 이용하시려면 로컬피드에 알려 주세요';cls='warn';} else {t='무료 체험 중 · '+(p.left===0?'오늘까지':p.left+'일 남았어요');s2=md(p.trialEnd)+'까지 무료예요';} }
     else if(p.status==='유료'){ t='이용 중';s2='다음 결제일 '+md(p.nextPay)+(p.fee?' · 월 '+esc(p.fee):''); cls=p.over?'warn':'ok'; if(p.over) t='결제일이 지났어요'; }
@@ -227,7 +233,7 @@
     document.title=S.store.name+' · 로컬피드';
     if(done===total){h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';}
     else{h1.innerHTML='대표님, 처음 한 번만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
-    var html=planCard()+svc(done,total)+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'하나씩 차례로 해요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
+    var html=planCard()+loginCard()+svc(done,total)+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'하나씩 차례로 해요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
     function rows(list){return '<div class="card tight">'+list.map(function(x){
       var chip=x.s.later?'<span class="chip warn">나중에</span>':x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
       var name=x.s.id==='ig'&&S.igName?S.igName:x.s.id==='th'&&S.thName?S.thName:x.s.id==='tt'&&S.ttName?S.ttName:x.s.d;
@@ -262,13 +268,16 @@
     if(a3) a3.onclick=function(){ if(window.confirm('당근에는 올리지 않을까요? 나중에 다시 켤 수 있어요.')) save('daangn_skip','1',a3); };
     var none=document.getElementById('none'); if(none) none.onclick=function(){save('blog','없음',none);};
     var rl=document.getElementById('reload'); if(rl) rl.onclick=load;
+    var lg=document.getElementById('lgB'); if(lg) lg.onclick=function(){ var M=document.getElementById('lgM'); M.textContent=''; lg.disabled=true;
+      lfApi({action:'owner_setlogin',store:store,key:key,phone:document.getElementById('lgP').value,pin:document.getElementById('lgN').value}).then(function(r){ if(!r.ok) throw new Error(r.error); S=norm(r); render(); }).catch(function(e){ M.textContent=e.message; lg.disabled=false; }); };
     [].forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){dev=b.dataset.d;render();};});
   }
   function load(){
     return lfApi({action:'owner_state',store:store,key:key}).then(function(r){ if(!r.ok) throw new Error(r.error); S=norm(r); render(); })
-      .catch(function(e){ if(!S) fail(e.message); });
+      .catch(function(e){ if(S) return; if(/확인 링크|등록되지 않은/.test(e.message)){ out(); return; } fail(e.message); });
   }
   document.addEventListener('visibilitychange',function(){ if(!document.hidden&&S) load(); });
+  document.getElementById('logout').onclick=function(ev){ ev.preventDefault(); if(window.confirm('로그아웃할까요?')) out(); };
   load();
 })();
 </script>

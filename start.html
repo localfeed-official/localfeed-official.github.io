@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>로컬피드 · 동네 가게 SNS를 대신 올려 드려요</title>
+<meta name="description" content="인스타그램, 스레드, 당근, 틱톡, 네이버 블로그. 대표님은 확인만 하세요. 3주 무료 체험.">
+<link rel="icon" href="icons/logo.svg">
+<link rel="stylesheet" href="a.css">
+</head>
+<body>
+<div class="phone">
+  <div class="brand"><img src="icons/logo.svg" alt=""><b>로컬피드</b><span>LocalFeed</span><a href="#login" id="toLogin" style="margin-left:auto;font-size:14px;font-weight:700;color:var(--b);text-decoration:none">로그인</a></div>
+
+  <div id="intro">
+    <div class="top"><h1>가게 SNS 5곳,<br>대표님은 확인만 하세요</h1><p>글과 카드뉴스, 대표님 얼굴 쇼츠까지 로컬피드가 만들어 매주 올려 드려요</p></div>
+
+    <div class="card">
+      <div class="logos" style="margin-top:0">
+        <div class="tile logo"><img src="icons/instagram.png" alt="인스타그램"></div>
+        <div class="tile logo"><img src="icons/threads.svg" alt="스레드"></div>
+        <div class="tile logo"><img src="icons/daangn.png" alt="당근"></div>
+        <div class="tile logo"><img src="icons/tiktok.svg" alt="틱톡"></div>
+        <div class="tile logo"><img src="icons/naver-blog.png" alt="네이버 블로그"></div>
+      </div>
+      <div class="get"><div><b>주 5회</b><span>카드뉴스</span></div><div><b>주 5회</b><span>채널별 글</span></div><div><b>주 1편</b><span>얼굴 쇼츠</span></div><div><b>매주</b><span>블로그 글</span></div></div>
+      <div class="ex" id="ex"></div><small class="exn" id="exn">예시 · 샘플 매장으로 만든 것</small>
+    </div>
+
+    <div class="card svc">
+      <b style="font-size:17px">이렇게 진행돼요</b>
+      <div class="flow on" style="margin-top:8px"><i>1</i><div><b>가입하고 가게를 알려 주세요</b><small>가게 소개, 사진, 채널 연결 · 20분쯤 · 나눠서 해도 돼요</small></div></div>
+      <div class="flow"><i>2</i><div><b>로컬피드가 조사하고 기획해요</b><small>같은 동네·업종에서 반응 좋은 글을 찾아 첫 주 주제를 잡아요</small></div></div>
+      <div class="flow"><i>3</i><div><b>대표님은 좋아요만 눌러요</b><small>주제와 대본을 보고 고칠 곳만 알려 주세요 · 주 1회 5분</small></div></div>
+      <div class="flow"><i>4</i><div><b>정해진 날 자동으로 올라가요</b><small>대표님이 확인한 것만 올리고, 올라가면 알려 드려요</small></div></div>
+    </div>
+
+    <div class="card">
+      <b style="font-size:17px">3주 동안 무료로 써 보세요</b>
+      <small style="display:block;color:var(--s);font-size:14px;line-height:1.6;margin-top:6px">신청을 받으면 로컬피드가 확인하고 체험을 시작해요. 체험은 선착순 5곳이에요. 3주 뒤 계속 쓰실 때만 월 결제로 넘어가고, 그 전에 요금을 먼저 안내해 드려요. 결제 정보는 받지 않아요.</small>
+    </div>
+    <a class="btn" href="#join" id="toJoin">무료 체험 신청하기</a>
+  </div>
+
+  <div id="form" hidden>
+    <div class="top"><h1 id="fh">무료 체험 신청</h1><p id="fs">1분이면 돼요. 가게 이야기는 가입한 뒤에 천천히 알려 주세요</p></div>
+    <div class="card">
+      <div class="seg"><button data-m="join" class="on">처음이에요</button><button data-m="login">가입했어요</button></div>
+      <form id="f">
+        <div id="jf">
+          <label class="fld"><span>가게 이름</span><input class="in" id="name" maxlength="40" placeholder="예: 결 헤어" autocomplete="organization"></label>
+          <label class="fld"><span>업종</span><input class="in" id="ind" maxlength="20" placeholder="예: 미용실, 카페, 필라테스"></label>
+          <label class="fld"><span>동네 <em style="font-style:normal;font-weight:400;color:var(--s)">(온라인만 하시면 "온라인")</em></span><input class="in" id="dong" maxlength="20" placeholder="예: 성수동"></label>
+        </div>
+        <label class="fld"><span>대표님 휴대폰 번호</span><input class="in" id="phone" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000"></label>
+        <label class="fld"><span id="pl">비밀번호 정하기 (숫자 4~6자리)</span><input class="in" id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="숫자만"></label>
+        <label id="ag" style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#4E5968;line-height:1.55;margin:4px 0 14px;cursor:pointer"><input type="checkbox" id="agree" style="width:20px;height:20px;flex:none;margin-top:1px"><span><b>개인정보 수집·이용에 동의해요</b><br>항목: 가게 이름, 업종, 동네, 휴대폰 번호 · 목적: 서비스 제공과 안내 연락 · 보관: 이용을 끝내면 지워요 · 동의하지 않으면 신청할 수 없어요 · <a href="privacy.html" target="_blank">자세히</a></span></label>
+        <p class="msg" id="msg"></p>
+        <button class="btn" id="go">신청하고 시작하기</button>
+      </form>
+      <small id="hint" style="display:block;margin-top:12px;color:var(--s);font-size:13px">비밀번호는 다음에 들어올 때만 써요. SNS 비밀번호는 묻지 않아요.</small>
+    </div>
+    <a href="#" id="back" style="display:block;text-align:center;font-size:14px;color:var(--s);padding:6px">← 서비스 안내 다시 보기</a>
+  </div>
+
+  <p class="foot"><b>로컬피드</b> · 하이브릭<br><a href="terms.html">이용약관</a> · <a href="privacy.html">개인정보처리방침</a></p>
+</div>
+<script src="config.js"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)}, LS=window.localStorage, mode='join';
+  try{ if(LS.getItem('lf_store')&&LS.getItem('lf_key')){ location.replace('my.html'); return; } }catch(e){}
+  var EX='https://d2ol7oe51mr4n9.cloudfront.net/user_3HMG7NwHVDNp5QwWEFS4eKzc3Dg/';
+  [['26796baf-f39d-4ed2-990c-11f057e4102b.jpg','카드뉴스는 이렇게'],['d54ad1cb-e978-45fa-8ada-8fe9a2756814.jpg','얼굴 쇼츠는 이렇게']].forEach(function(x){
+    var f=document.createElement('figure'), im=new Image(), c=document.createElement('figcaption');
+    im.alt=''; im.onerror=function(){ f.remove(); if(!$('ex').children.length) $('exn').hidden=true; }; im.src=EX+x[0]; c.textContent=x[1]; f.appendChild(im); f.appendChild(c); $('ex').appendChild(f);
+  });
+  function show(m){
+    var form=(m==='join'||m==='login'); $('intro').hidden=form; $('form').hidden=!form; if(!form) return;
+    mode=m; var j=m==='join';
+    $('jf').hidden=!j; $('ag').hidden=!j; $('hint').hidden=!j;
+    $('fh').textContent=j?'무료 체험 신청':'로그인'; $('fs').textContent=j?'1분이면 돼요. 가게 이야기는 가입한 뒤에 천천히 알려 주세요':'가입할 때 적은 번호와 비밀번호로 들어와요';
+    $('pl').textContent=j?'비밀번호 정하기 (숫자 4~6자리)':'비밀번호'; $('go').textContent=j?'신청하고 시작하기':'로그인'; $('pin').autocomplete=j?'new-password':'current-password'; $('msg').textContent='';
+    [].forEach.call(document.querySelectorAll('.seg button'),function(b){b.className=b.dataset.m===m?'on':'';});
+    window.scrollTo(0,0);
+  }
+  function route(){ var h=location.hash.slice(1); show(h==='join'||h==='login'?h:''); }
+  window.addEventListener('hashchange',route);
+  [].forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){location.hash=b.dataset.m;};});
+  $('back').onclick=function(e){e.preventDefault();location.hash='';};
+  $('f').onsubmit=function(e){
+    e.preventDefault(); var b=$('go'), t=b.textContent, M=$('msg'); M.textContent='';
+    var body=mode==='join'?{action:'owner_signup',name:$('name').value,industry:$('ind').value,dong:$('dong').value,phone:$('phone').value,pin:$('pin').value,agree:$('agree').checked?'1':''}:{action:'owner_login',phone:$('phone').value,pin:$('pin').value};
+    if(mode==='join'&&!$('name').value.trim()){M.textContent='가게 이름을 적어 주세요.';return;}
+    if(!/^\d{4,6}$/.test($('pin').value)){M.textContent='비밀번호는 숫자 4~6자리예요.';return;}
+    if(mode==='join'&&!$('agree').checked){M.textContent='개인정보 수집·이용에 동의해 주세요.';return;}
+    b.disabled=true; b.textContent='확인 중…';
+    lfApi(body).then(function(r){ if(!r.ok) throw new Error(r.error); try{LS.setItem('lf_store',r.store);LS.setItem('lf_key',r.key);}catch(e){ location.replace('my.html?store='+encodeURIComponent(r.store)+'&key='+encodeURIComponent(r.key)); return; } location.replace('my.html'); })
+      .catch(function(e){ M.textContent=e.message||'잠시 뒤 다시 해 주세요.'; b.disabled=false; b.textContent=t; });
+  };
+  route();
+})();
+</script>
+</body>
+</html>

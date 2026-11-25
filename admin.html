@@ -24,14 +24,24 @@
 <script src="config.js"></script>
 <script>
 (function(){
-  var q=new URLSearchParams(location.search), K;
-  try{K=q.get('k')||localStorage.getItem('lf_admin'); if(q.get('k')){localStorage.setItem('lf_admin',K);history.replaceState(null,'',location.pathname);}}catch(e){K=q.get('k');}
+  var K=null;
+  try{K=localStorage.getItem('lf_admin_s'); localStorage.removeItem('lf_admin');}catch(e){}
+  if(location.search) history.replaceState(null,'',location.pathname);
   var $=function(id){return document.getElementById(id)}, D=null, tab='dash', cur=null;
   function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function say(t){$('msg').textContent=t||'';}
   function copy(t,btn){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){var o=btn.textContent;btn.textContent='복사됨';setTimeout(function(){btn.textContent=o},1200);}).catch(function(){window.prompt('길게 눌러 복사하세요',t);}); }
   function call(body,btn){ say(''); if(btn){btn.disabled=true;btn.dataset.t=btn.textContent;btn.textContent='처리 중…';} body.k=K;
-    return lfApi(body).then(function(r){ if(!r.ok) throw new Error(r.error); D=r; render(); }).catch(function(e){ say(e.message); if(btn){btn.disabled=false;btn.textContent=btn.dataset.t;} }); }
+    return lfApi(body).then(function(r){ if(!r.ok) throw new Error(r.error); D=r; render(); }).catch(function(e){ if(/^LOGIN/.test(e.message)){ logout(true); return; } say(e.message); if(btn){btn.disabled=false;btn.textContent=btn.dataset.t;} }); }
+  function logout(silent){ var k=K; K=null; D=null; try{localStorage.removeItem('lf_admin_s');}catch(e){} if(k&&!silent) _api({action:'admin_logout',k:k}); login(silent?'로그인이 풀렸어요. 다시 로그인해 주세요.':''); }
+  function login(m){
+    document.querySelector('.side').hidden=true;
+    $('view').innerHTML='<div class="card" style="max-width:380px;margin:8vh auto 0"><div class="brand" style="padding:0 0 14px"><img src="icons/logo.svg" alt=""><b>로컬피드</b><span>운영 화면</span></div><form id="lf"><label class="fld"><span>아이디</span><input class="in" id="aid" autocomplete="username" autocapitalize="off"></label><label class="fld"><span>비밀번호</span><input class="in" id="apw" type="password" autocomplete="current-password"></label><button class="btn" id="ago">로그인</button></form><small style="display:block;margin-top:12px;color:var(--s)">처음이면 시트 메뉴 로컬피드 → "9. 운영 화면 로그인 정하기"에서 아이디와 비밀번호를 먼저 정해 주세요.</small></div>';
+    say(m||'');
+    $('lf').onsubmit=function(ev){ ev.preventDefault(); var b=$('ago'); b.disabled=true; b.textContent='확인 중…'; say('');
+      _api({action:'admin_login',id:$('aid').value.trim(),pw:$('apw').value}).then(function(r){ if(!r.ok) throw new Error(r.error); K=r.k; try{localStorage.setItem('lf_admin_s',K);}catch(e){} document.querySelector('.side').hidden=false; $('view').innerHTML='<h1>불러오는 중…</h1>'; return call({action:'admin_state'}); })
+      .catch(function(e){ say(e.message); b.disabled=false; b.textContent='로그인'; }); };
+  }
   function ico(p){return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';}
   var NAV=[['dash','대시보드','<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'],['stores','매장','<path d="M4 10v10h16V10M3 10l2-6h14l2 6a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/>'],['refs','레퍼런스 조사','<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'],['contents','기획 · 콘텐츠','<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'],['pubs','발행 기록','<path d="M4 12l16-8-6 16-3-6z"/>'],['set','연결 · 설정','<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>']];
   var KEYS=['place','intro','photos','voice','blog','daangn','igbiz','ig','th','tt'];
@@ -64,6 +74,7 @@
     return D.todos.length?D.todos.map(function(t){
       var open=' <button class="btn sm gray" data-open="'+esc(t.store)+'">매장 보기</button>';
       if(t.kind==='tester') return '<div class="alert">'+logo('instagram.png')+'<div class="g"><b>'+esc(t.name)+' · 인스타 비즈니스 전환 완료 → 테스터 등록</b><small>아이디 '+esc(t.igId)+' · '+esc(t.at)+'에 대표님이 눌렀어요 · Instagram 테스터와 Threads 테스터 둘 다 추가</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc(t.igId)+'">아이디 복사</button><a class="btn sm gray" target="_blank" rel="noopener" href="'+esc(D.roles)+'">Meta 역할 페이지 열기</a><button class="btn sm" data-done="tester" data-store="'+esc(t.store)+'">등록했어요</button></div></div>';
+      if(t.kind==='new') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">신규</div><div class="g"><b>'+esc(t.name)+' · 가입 신청이 들어왔어요</b><small>'+esc([t.keys,t.phone,t.at].filter(Boolean).join(' · '))+' · 받기로 하면 "체험 시작"을 누르세요</small></div><div class="acts">'+open+'<button class="btn sm" data-done="trial_start" data-store="'+esc(t.store)+'">체험 시작</button></div></div>';
       if(t.kind==='research') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b)">'+ico('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>')+'</div><div class="g"><b>'+esc(t.name)+' · 가게 소개 도착 → 레퍼런스 조사</b><small>'+esc(t.keys)+'</small></div><div class="acts">'+open+'<button class="btn sm" data-done="research" data-store="'+esc(t.store)+'">조사 시작</button></div></div>';
       if(t.kind==='trial'||t.kind==='pay') return '<div class="alert"><div class="tile" style="background:var(--warnbg);color:var(--warn);font-weight:700;font-size:13px">'+(t.left<0?'지남':'D-'+t.left)+'</div><div class="g"><b>'+esc(t.name)+' · '+(t.kind==='trial'?'무료 체험':'이번 달 이용')+'이 '+md(t.end).replace('-','월 ')+'일에 '+(t.left<0?'끝났어요':'끝나요')+'</b><small>'+(t.kind==='trial'?'유료 전환 안내를 보내고, 입금되면 "입금 확인"을 누르세요':'입금되면 "입금 확인"을 누르세요. 다음 결제일이 한 달 뒤로 넘어갑니다')+'</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc(payMsg(t))+'">안내 문구 복사</button><button class="btn sm" data-done="paid" data-store="'+esc(t.store)+'">입금 확인</button></div></div>';
       return '<div class="alert">'+logo('daangn.png')+'<div class="g"><b>'+esc(t.name)+' · 당근 초대 도착 · 코드 <span style="font-size:18px;letter-spacing:2px;color:var(--b)">'+esc(t.code||'없음')+'</span></b><small>초대 링크를 열고 코드 6자리를 넣어 "운영자 수락"을 누르세요. 수락하면 링크와 코드는 지워집니다.</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc(t.code)+'">코드 복사</button><a class="btn sm gray" target="_blank" rel="noopener noreferrer" href="'+esc(t.link)+'">초대 링크 열기</a><button class="btn sm" data-done="daangn" data-store="'+esc(t.store)+'">수락했어요</button></div></div>';
@@ -96,7 +107,7 @@
     var note={place:s.online?'온라인 매장':'',intro:[I.dong,I.industry].filter(Boolean).join(' · '),photos:'매장 '+f.store+'장 · 얼굴 '+f.face+'장'+(T.photos?' · 동의 '+T.photos:''),voice:st.voice==='skip'?'자막만':'녹음 '+f.voice+'개'+(T.voice?' · 동의 '+T.voice:''),blog:s.blogUrl,daangn:s.daangn,igbiz:T.igbiz?'전환 '+T.igbiz+(T.tester?' · 테스터 등록 '+T.tester:' · 테스터 등록 필요'):'',ig:s.igName,th:s.thName,tt:s.ttName};
     var cs=D.contents.filter(function(c){return c.store===s.code}), ps=D.publishes.filter(function(p){return p.store===s.code});
     function kv(k,v){return v?'<div class="kv"><span>'+k+'</span><p>'+esc(v)+'</p></div>':'';}
-    return '<div class="hd"><div><button class="link" data-tab="stores">← 매장 목록</button><h1>'+esc(s.name)+'</h1><small>'+esc([s.dong,s.industry,s.code].filter(Boolean).join(' · '))+'</small></div><div class="acts"><button class="btn sm sec" data-copy="'+esc(s.link)+'">전용 링크 복사</button><button class="btn sm gray" style="color:var(--bad)" data-done="remove" data-store="'+esc(s.code)+'" data-name="'+esc(s.name)+'">삭제</button></div></div>'+
+    return '<div class="hd"><div><button class="link" data-tab="stores">← 매장 목록</button><h1>'+esc(s.name)+'</h1><small>'+esc([s.dong,s.industry,s.code,s.phone,s.joined?'가입 '+s.joined:'',s.noPin?'로그인 아직 안 정함':''].filter(Boolean).join(' · '))+'</small></div><div class="acts"><button class="btn sm gray" data-done="resetpin" data-store="'+esc(s.code)+'">비밀번호 다시 정하기</button><button class="btn sm gray" style="color:var(--bad)" data-done="remove" data-store="'+esc(s.code)+'" data-name="'+esc(s.name)+'">삭제</button></div></div>'+
       '<div class="two"><div><div class="box"><h2>시작하기 '+nDone(s)+' / '+KEYS.length+'</h2>'+KEYS.map(function(k,i){return '<div class="line"><span class="num '+(ok(st[k])?'on':'')+'">'+(i+1)+'</span><div class="g"><b>'+KNAME[k]+'</b><small>'+esc(note[k]||'')+'</small></div>'+(k==='ig'&&st.igbiz==='done'&&st.tester!=='done'?'<span class="chip warn">테스터 등록</span>':chip(st[k],k==='ig'||k==='th'||k==='tt'?'연결':'완료'))+'</div>';}).join('')+'</div></div>'+
       '<div><div class="box"><h2>이용 기간</h2><div style="padding-bottom:14px;line-height:2.2">'+plan(s)+'</div></div>'+
       '<div class="box"><h2>가게 소개</h2><div style="padding-bottom:10px">'+(I.menu?kv('업종·동네',[I.industry,I.dong].join(' · '))+kv('대표 메뉴',I.menu)+kv('주 손님',I.customer)+kv('자랑',I.strong)+kv('닮고 싶은 곳',I.like)+kv('매장 주소',s.place):'<p class="empty">아직 적지 않았습니다.</p>')+'</div></div>'+
@@ -125,6 +136,7 @@
       if(w==='trial_start'&&!window.confirm('오늘부터 무료 체험 21일을 시작할까요?')) return;
       if(w==='research'&&!window.confirm('이 매장 업종으로 레퍼런스 조사를 시작할까요?\n인스타·틱톡·블로그에서 반응 좋은 글을 모읍니다. 10분쯤 걸리고 수집 비용이 조금 듭니다.')) return;
       if(w==='remove'){ var typed=window.prompt('"'+b.dataset.name+'" 매장을 삭제합니다.\n· 이 매장의 전용 링크가 열리지 않게 됩니다\n· 저장된 인스타·스레드·틱톡 연결이 지워져 더 이상 올릴 수 없습니다\n· 시트의 줄은 "삭제" 표시로 남습니다\n\n삭제하려면 매장 이름을 그대로 적어 주세요.',''); if(typed===null) return; if(typed.trim()!==b.dataset.name){ say('매장 이름이 달라 삭제하지 않았습니다.'); return; } tab='stores'; }
+      if(w==='resetpin'){ v=window.prompt('대표님께 알려 드릴 새 비밀번호를 숫자 4~6자리로 적어 주세요.\n들어온 뒤 대표님이 직접 바꿀 수는 없으니, 전화로 확인하고 정해 주세요.',''); if(!v) return; }
       if(w==='stop'&&!window.confirm('이 매장의 이용을 중지로 바꿀까요?')) return;
       call({action:'admin_done',store:b.dataset.store,what:w,value:v},b);
     };});
@@ -132,10 +144,11 @@
   }
   function norm(r){ r.industries=r.industries||[]; r.contents=r.contents||[]; r.publishes=r.publishes||[]; r.sheet=r.sheet||'#'; r.stores.forEach(function(s){s.plan=s.plan||{status:'시작 전'};s.files=s.files||{store:0,face:0,voice:0};s.steps.intro=s.steps.intro||'todo';s.steps.voice=s.steps.voice||'todo';}); return r; }
   var _api=window.lfApi; window.lfApi=function(b){return _api(b).then(function(r){return r&&r.ok&&r.stores?norm(r):r;});};
-  if(!K){$('view').innerHTML='<h1>운영 화면 주소가 필요합니다</h1>';say('시트 메뉴 "9. 운영 화면 주소 만들기"에서 받은 주소로 들어와 주세요.');return;}
+  var lo=document.createElement('button'); lo.className='btn sm gray'; lo.textContent='로그아웃'; lo.style.marginTop='8px'; lo.onclick=function(){logout(false);}; document.querySelector('.side').appendChild(lo);
   $('reload').onclick=function(){call({action:'admin_state'},$('reload'));};
   document.addEventListener('visibilitychange',function(){ if(!document.hidden&&D) call({action:'admin_state'}); });
-  call({action:'admin_state'}).then(function(){ if(!D) $('view').innerHTML='<h1>열 수 없습니다</h1>'; });
+  if(!K){ login(''); return; }
+  call({action:'admin_state'}).then(function(){ if(!D&&K) $('view').innerHTML='<h1>열 수 없습니다</h1>'; });
 })();
 </script>
 </body>
