@@ -119,3 +119,62 @@ label.btn{cursor:pointer}
 .ph{width:100%;border-radius:10px;background-color:var(--bg);background-repeat:no-repeat}
 .shots figure{padding:6px 6px 8px}
 .ainote{font-size:11px;color:var(--s);margin:-4px 0 10px}
+
+/* 운영 화면: 왼쪽 메뉴 + 본문 */
+.shell{display:flex;min-height:100vh}
+.side{width:232px;flex:none;background:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.side .brand{padding:0 8px 18px;gap:10px}
+.side .brand div{display:flex;flex-direction:column}
+.side .brand span{font-size:11px}
+.side nav{display:flex;flex-direction:column;gap:4px}
+.side nav button{display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:13px;padding:11px 12px;font:inherit;font-size:15px;font-weight:500;color:#4E5968;cursor:pointer;text-align:left}
+.side nav button.on{background:var(--soft);color:var(--b);font-weight:700}
+.side nav button i{margin-left:auto;font-style:normal;font-size:12px;font-weight:700;background:#F04452;color:#fff;border-radius:999px;padding:1px 7px}
+.main{flex:1;min-width:0;padding:26px 30px 60px;max-width:1240px}
+.hd{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.hd h1{font-size:28px;margin:2px 0 0}
+.hd small{font-size:13px;color:var(--s)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}
+.stat{background:#fff;border-radius:20px;padding:18px 20px}
+.stat small{font-size:13px;color:var(--s);display:block}
+.stat b{font-size:28px;display:block;margin-top:2px}
+.stat span{font-size:12px;color:var(--s)}
+.empty{color:var(--s);font-size:14px;padding:4px 0 14px;margin:0;line-height:1.6}
+.pipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding-bottom:14px}
+.ph2{font-size:13px;color:var(--s);font-weight:600;margin-bottom:8px}
+.ph2 b{color:var(--t)}
+.pcard{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;border:0;background:var(--bg);border-radius:14px;padding:12px;margin-bottom:8px;font:inherit;cursor:pointer;text-align:left}
+.pcard b{font-size:14px}
+.link{border:0;background:none;padding:0;font:inherit;color:var(--b);cursor:pointer;text-align:left}
+.link b{color:var(--t);font-size:15px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.line{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--bg)}
+.line .g{flex:1;min-width:0}
+.line b{font-size:14px;font-weight:600;display:block}
+.line small{font-size:12px;color:var(--s);display:block;margin-top:1px;word-break:break-all}
+.num{width:24px;height:24px;border-radius:50%;background:var(--bg);color:#8B95A1;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.num.on{background:var(--okbg);color:var(--ok)}
+.kv{padding:8px 0;border-top:1px solid var(--bg)}
+.kv span{font-size:12px;color:var(--s);font-weight:600}
+.kv p{margin:2px 0 0;font-size:14px;line-height:1.5;word-break:break-all}
+@media(max-width:900px){.shell{flex-direction:column}.side{width:auto;height:auto;position:static}.side nav{flex-direction:row;overflow:auto}.side nav button{white-space:nowrap}.main{padding:18px 14px 40px}.stats,.pipe,.two{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}}
+
+/* 서비스 소개 */
+.svc summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer}
+.svc summary::-webkit-details-marker{display:none}
+.svc summary b{display:block;font-size:17px}
+.svc summary small{display:block;font-size:13px;color:var(--s);margin-top:2px}
+.svc summary em{font-style:normal;font-size:12px;font-weight:600;color:var(--b);background:var(--soft);border-radius:8px;padding:6px 9px;white-space:nowrap}
+.svc[open] summary em{display:none}
+.logos{display:flex;gap:8px;margin:16px 0 14px}
+.get{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+.get div{background:var(--bg);border-radius:14px;padding:12px 4px;text-align:center}
+.get b{display:block;font-size:15px;color:var(--b)}
+.get span{display:block;font-size:11px;color:#4E5968;margin-top:2px;line-height:1.3}
+.exn{display:block;font-size:11px;color:var(--s);margin-top:6px}
+.svc h3{font-size:15px;margin:18px 0 6px}
+.flow{display:flex;gap:12px;padding:9px 0;align-items:flex-start}
+.flow i{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--bg);color:#8B95A1;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.flow.on i{background:var(--b);color:#fff}
+.flow b{display:block;font-size:15px}
+.flow small{display:block;font-size:13px;color:var(--s);margin-top:1px;line-height:1.45}

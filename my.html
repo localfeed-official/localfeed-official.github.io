@@ -194,6 +194,22 @@
       }).catch(function(){ upmsg('마이크를 쓸 수 없어요. 마이크 허용을 눌러 주시거나 "녹음 파일로 보내기"를 써 주세요.',true); });
     };
   }
+  // 서비스 소개: 무엇을 받는지, 어떻게 진행되는지
+  function svc(done,total){
+    var lg=['ig','th','dg','tt','bl'].map(function(k){return tile(k,false);}).join('');
+    var step=function(n,t,d,on){return '<div class="flow'+(on?' on':'')+'"><i>'+n+'</i><div><b>'+t+'</b><small>'+d+'</small></div></div>';};
+    var at=done===total?2:1;
+    return '<details class="card svc"'+(done<2?' open':'')+'><summary><span><b>로컬피드는 이런 서비스예요</b><small>대표님 가게 SNS 5곳을 매주 대신 올려 드려요</small></span><em>펼치기</em></summary>'+
+      '<div class="logos">'+lg+'</div>'+
+      '<div class="get"><div><b>주 5회</b><span>카드뉴스</span></div><div><b>주 5회</b><span>채널별 글</span></div><div><b>주 1편</b><span>얼굴 쇼츠</span></div><div><b>매주</b><span>블로그 글</span></div></div>'+
+      '<div class="ex">'+[['26796baf-f39d-4ed2-990c-11f057e4102b.jpg','카드뉴스는 이렇게'],['d54ad1cb-e978-45fa-8ada-8fe9a2756814.jpg','얼굴 쇼츠는 이렇게']].map(function(x){return '<figure><img src="'+EX+x[0]+'" alt="" onerror="this.parentNode.remove()"><figcaption>'+x[1]+'</figcaption></figure>';}).join('')+'</div><small class="exn">예시 · 샘플 매장으로 만든 것</small>'+
+      '<h3>이렇게 진행돼요</h3>'+
+      step(1,'처음 한 번 알려 주세요','아래 '+total+'가지 · 20분쯤 · 나눠서 해도 돼요',at===1)+
+      step(2,'로컬피드가 조사하고 기획해요','같은 동네·업종에서 반응 좋은 글을 찾아 첫 주 주제를 잡아요',at===2)+
+      step(3,'대표님은 좋아요만 눌러요','주제와 대본을 보고 고칠 곳만 알려 주세요 · 주 1회 5분',false)+
+      step(4,'정해진 날 자동으로 올라가요','올라가면 알려 드리고, 블로그 글만 복사해서 붙여 주세요',false)+
+      '</details>';
+  }
   function md(d){var p=String(d||'').split('-');return p.length===3?(+p[1])+'월 '+(+p[2])+'일':'';}
   function planCard(){
     var p=S.plan; if(!p||p.status==='시작 전') return '';
@@ -211,7 +227,7 @@
     document.title=S.store.name+' · 로컬피드';
     if(done===total){h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';}
     else{h1.innerHTML='대표님, 처음 한 번만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
-    var html=planCard()+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'하나씩 차례로 해요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
+    var html=planCard()+svc(done,total)+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'하나씩 차례로 해요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
     function rows(list){return '<div class="card tight">'+list.map(function(x){
       var chip=x.s.later?'<span class="chip warn">나중에</span>':x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
       var name=x.s.id==='ig'&&S.igName?S.igName:x.s.id==='th'&&S.thName?S.thName:x.s.id==='tt'&&S.ttName?S.ttName:x.s.d;
