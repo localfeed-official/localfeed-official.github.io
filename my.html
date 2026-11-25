@@ -24,10 +24,10 @@
   var store=q.get('store')||get('lf_store'), key=q.get('key')||get('lf_key');
   if(q.get('store')&&q.get('key')){set('lf_store',store);set('lf_key',key);history.replaceState(null,'',location.pathname);}
   var app=document.getElementById('app'), h1=document.getElementById('h1'), sub=document.getElementById('sub');
-  var mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent), dev=mobile?'m':'p', S=null;
+  var mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent), dev=mobile?'m':'p', S=null, online=false, forced=null, rec=null;
   function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   var CHECK='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-  var ICON={store:'<path d="M4 10v10h16V10M3 10l2-6h14l2 6a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/>',image:'<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5-9 9"/>'};
+  var ICON={note:'<path d="M6 3h9l4 4v14H6zM9 12h7M9 16h7M9 8h3"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',store:'<path d="M4 10v10h16V10M3 10l2-6h14l2 6a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/>',image:'<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5-9 9"/>'};
   function svg(n){return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ICON[n]+'</svg>'}
   var LOGO={ig:'instagram.png',th:'threads.svg',dg:'daangn.png',tt:'tiktok.svg',bl:'naver-blog.png'};
   function tile(kind,done,big){
@@ -35,6 +35,7 @@
     if(LOGO[kind]) return '<div class="tile logo'+(big?' big':'')+'"><img src="icons/'+LOGO[kind]+'" alt=""></div>';
     return '<div class="tile'+(big?' big':'')+'">'+svg(kind)+'</div>';
   }
+  function norm(r){ r.files=r.files||{store:0,face:0,voice:0}; r.steps.voice=r.steps.voice||'todo'; r.steps.intro=r.steps.intro||'done'; r.intro=r.intro||{}; return r; }
   function fail(t){h1.textContent='화면을 열 수 없어요';sub.textContent=t;app.innerHTML='';}
   if(!store||!key){fail('로컬피드가 보내드린 전용 링크로 다시 들어와 주세요.');return;}
 
@@ -43,7 +44,9 @@
     var s=S.steps;
     return [
       {id:'place',ic:'store',t:'매장 정보',d:'네이버 플레이스 주소 붙여넣기',done:s.place==='done'},
-      {id:'photos',ic:'image',t:'사진과 얼굴 동의',d:'매장 사진 10장 · 대표님 사진 1장',done:s.photos==='done'},
+      {id:'intro',ic:'note',t:'가게 소개',d:s.intro==='done'?(S.intro.dong+' · '+S.intro.industry+' · 눌러서 고치기'):'무엇을 파는지, 누가 오는지 · 2분',done:s.intro==='done',reopen:true},
+      {id:'photos',ic:'image',t:'매장 사진과 대표님 얼굴',d:s.photos==='later'?'나중에 보내기로 했어요 · 눌러서 보내기':'매장 '+S.files.store+'장 · 얼굴 '+S.files.face+'장'+(s.photos==='done'?' · 눌러서 더 보내기':''),done:s.photos!=='todo',later:s.photos==='later',reopen:true},
+      {id:'voice',ic:'mic',t:'대표님 목소리',d:s.voice==='skip'?'목소리는 쓰지 않아요 · 눌러서 바꾸기':s.voice==='later'?'나중에 보내기로 했어요 · 눌러서 녹음하기':s.voice==='done'?'녹음 '+S.files.voice+'개 받았어요':'30초만 읽어 주세요 (선택)',done:s.voice!=='todo',later:s.voice==='later',reopen:true},
       {id:'blog',ic:'bl',t:'블로그 주소',d:'붙여넣기만 하면 돼요',done:s.blog==='done'},
       {id:'daangn',ic:'dg',t:'당근 운영자로 초대하기',d:s.daangn==='sent'?'로컬피드가 수락하는 중이에요':'초대 링크 보내기',done:s.daangn==='done',wait:s.daangn==='sent'},
       {id:'igbiz',ic:'ig',t:'인스타를 비즈니스 계정으로',d:'무료 · 게시물과 팔로워는 그대로',done:s.igbiz==='done'},
@@ -56,56 +59,137 @@
     var m=document.getElementById('msg'); if(m) m.textContent='';
     if(btn){btn.disabled=true;btn.dataset.t=btn.textContent;btn.textContent='보내는 중…';}
     return lfApi({action:'owner_save',store:store,key:key,field:field,value:value}).then(function(r){
-      if(!r.ok) throw new Error(r.error); S=r; render();
+      if(!r.ok) throw new Error(r.error); S=norm(r); render();
     }).catch(function(e){ if(btn){btn.disabled=false;btn.textContent=btn.dataset.t;} if(m) m.textContent=e.message; });
   }
+  var EX='https://d2ol7oe51mr4n9.cloudfront.net/user_3HMG7NwHVDNp5QwWEFS4eKzc3Dg/';
+  function why(t,imgs){
+    var pics=(imgs||[]).map(function(x){return '<figure><img src="'+EX+x[0]+'" alt="" onerror="this.parentNode.remove()"><figcaption>'+x[1]+'</figcaption></figure>';}).join('');
+    return '<div class="why"><b>왜 필요한가요?</b><p>'+t+'</p>'+(pics?'<div class="ex">'+pics+'</div><small>예시 · 샘플 매장으로 만든 것</small>':'')+'</div>';
+  }
+  // 찍는 법 안내 그림 (직접 그린 단순한 그림)
+  function fig(inner){return '<svg viewBox="0 0 80 100" fill="none" stroke="#2B64F5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'+inner+'</svg>';}
+  var FACE1=fig('<circle cx="40" cy="38" r="17"/><path d="M12 96c2-18 14-26 28-26s26 8 28 26"/><path d="M34 36v2M46 36v2M35 45c3 3 7 3 10 0"/>');
+  var FACE2=fig('<ellipse cx="42" cy="38" rx="15" ry="17"/><path d="M12 96c2-18 14-26 28-26s26 8 28 26"/><path d="M42 36v2M51 36v2M43 45c2 2 5 2 7 0M55 38l3 4-3 1"/>');
+  var FACE3=fig('<circle cx="40" cy="26" r="12"/><path d="M8 98c0-26 12-44 32-44s32 18 32 44"/><path d="M36 24v1.5M44 24v1.5M35 30c3 4 7 4 10 0"/><path d="M40 54v20"/>');
+  var IC2={store:'<path d="M14 44v40h52V44M10 44l6-20h48l6 20a10 10 0 0 1-20 0 10 10 0 0 1-20 0 10 10 0 0 1-20 0zM32 84V62h16v22"/>',room:'<path d="M10 30l30-14 30 14v54H10zM10 66h60M28 66V46h24v20"/>',star:'<path d="M40 18l7 15 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z"/>',hand:'<path d="M22 84V52l12-8V26a5 5 0 0 1 10 0v18l14 4a8 8 0 0 1 6 8v28"/>',list:'<rect x="16" y="14" width="48" height="72" rx="6"/><path d="M26 32h28M26 46h28M26 60h18"/>'};
+  function ICO(k){return fig(IC2[k]);}
+  function shot(svgs,t,d){return '<figure>'+svgs+'<figcaption><b>'+t+'</b>'+(d?'<br>'+d:'')+'</figcaption></figure>';}
   function head(n,st,subt){return '<div class="head">'+tile(st.ic,false,true)+'<div><div class="n">'+n+'번째</div><h2>'+st.t+'</h2><p>'+subt+'</p></div></div>';}
   function body(st,n){
     var c='', id=st.id;
     if(id==='place'){
-      c=head(n,st,'지도에 나오는 주소, 영업시간, 가격을 그대로 가져와요')+
+      c=head(n,st,'지도에 나오는 주소, 영업시간, 가격을 그대로 가져와요')+why('가격이나 영업시간을 틀리게 쓰면 손님이 헛걸음해요. 지도에 적힌 그대로 가져와서 글마다 맞는지 확인해요.')+
         '<ol class="ol"><li>네이버 지도에서 대표님 매장을 찾아요</li><li><b>공유</b>를 눌러 주소를 복사해요</li><li>아래 칸에 붙여넣어요</li></ol>'+
-        '<input class="in" id="v" placeholder="https://naver.me/… 또는 https://map.naver.com/…" inputmode="url"><p class="msg" id="msg"></p><button class="btn" id="go">저장하기</button>';
+        '<input class="in" id="v" placeholder="https://naver.me/… 또는 https://map.naver.com/…" inputmode="url"><p class="msg" id="msg"></p>'+
+        '<div class="stack"><button class="btn" id="go">저장하기</button><button class="btn gray" id="toOnline">지도에 등록 안 했어요 (온라인 매장)</button></div>';
+      if(online) c=head(n,st,'온라인으로 파시는 곳이면 이렇게 알려 주세요')+
+        '<input class="in" id="v" placeholder="판매하는 곳 주소 (스마트스토어, 자사몰, 인스타 등)" inputmode="url">'+
+        '<textarea class="in" id="intro" style="margin-top:8px" placeholder="무엇을 파는지, 가격대, 상담·배송 시간을 한두 줄 적어 주세요"></textarea><p class="msg" id="msg"></p>'+
+        '<div class="stack"><button class="btn" id="go">저장하기</button><button class="btn gray" id="toPlace">네이버 지도 주소로 할게요</button></div>';
+    }else if(id==='intro'){
+      var I=S.intro||{};
+      function fld(idn,label,ph,val,area){ return '<label class="fld"><span>'+label+'</span>'+(area?'<textarea class="in" id="'+idn+'" placeholder="'+ph+'">'+esc(val||'')+'</textarea>':'<input class="in" id="'+idn+'" placeholder="'+ph+'" value="'+esc(val||'')+'">')+'</label>'; }
+      c=head(n,st,'이걸 보고 같은 동네, 같은 업종을 먼저 조사해요')+
+        why('글을 쓰기 전에 대표님 동네의 같은 업종에서 반응이 좋았던 글을 먼저 찾아봐요. 무엇을 파는지, 누가 오는지를 알아야 엉뚱한 주제가 안 나와요.')+
+        fld('i_ind','무슨 가게인가요?','예: 미용실, 네일샵, 빵집',I.industry)+
+        fld('i_dong','어느 동네인가요?','예: 망원동 (온라인만 하시면 "온라인")',I.dong||(S.online?'온라인':''))+
+        fld('i_menu','대표 메뉴·서비스와 가격 (3가지쯤)','예: 커트 25,000원 / 펌 90,000원부터 / 염색 80,000원부터',I.menu,true)+
+        fld('i_cus','주로 어떤 손님이 오시나요?','예: 30~40대 직장인 여성, 근처 주민',I.customer)+
+        fld('i_str','우리 가게만의 자랑 한 줄','예: 1인 예약제라 기다리지 않아요',I.strong)+
+        fld('i_like','닮고 싶은 가게나 계정 (선택)','예: 인스타 @○○헤어, 옆 동네 ○○베이커리',I.like)+
+        '<p class="msg" id="msg"></p><button class="btn" id="go">저장하기</button>';
     }else if(id==='photos'){
-      c=head(n,st,'카드뉴스와 영상에 쓸 사진이에요')+
-        '<ol class="ol"><li>매장 안팎 사진 10장쯤과 대표님 얼굴 사진 1장을 골라요</li><li>로컬피드 담당자 카톡으로 보내 주세요</li></ol>'+
-        '<label class="check"><input type="checkbox" id="v"><span>보낸 사진과 제 얼굴을 로컬피드가 만드는 카드뉴스·영상에 쓰는 데 동의해요. 영상에는 AI로 만들었다는 표시가 붙어요. 언제든 그만 쓰게 할 수 있어요.</span></label>'+
-        '<p class="msg" id="msg"></p><button class="btn" id="go">사진 보냈고 동의해요</button>';
+      var agreed=S.steps.photos==='done';
+      c=head(n,st,'남의 사진이 아니라 대표님 가게 사진으로 만들어요')+
+        why('가게 사진이 들어가야 손님이 "아, 거기" 하고 알아봐요. 얼굴 사진 한 장으로는 대표님이 직접 말하는 12초 영상을 만들어요. 영상에는 AI로 만들었다는 표시가 붙어요.',[['26796baf-f39d-4ed2-990c-11f057e4102b.jpg','매장 사진 → 카드뉴스'],['d54ad1cb-e978-45fa-8ada-8fe9a2756814.jpg','얼굴 사진 → 12초 영상']])+
+        '<div class="sub"><h3>대표님 얼굴 사진 3장</h3><div class="shots">'+shot(FACE1,'① 정면','카메라를 똑바로')+shot(FACE2,'② 살짝 옆','고개를 조금 돌려서')+shot(FACE3,'③ 상반신','웃는 얼굴로')+'</div>'+
+        '<ul class="tips"><li>창가처럼 밝은 곳에서, 혼자 찍어요</li><li>모자·마스크·선글라스는 벗고, 보정 앱은 쓰지 않아요</li><li>세 장이 비슷한 날, 비슷한 머리와 옷이면 영상이 자연스러워요</li></ul>'+
+        '<div class="up"><div><b>얼굴 사진 보내기</b><small>지금 '+S.files.face+' / 3장</small></div><label class="btn sm sec">사진 고르기<input type="file" accept="image/*" multiple hidden data-up="face"></label></div></div>'+
+        '<div class="sub"><h3>매장 사진 10장쯤</h3><div class="shots five">'+shot(ICO('store'),'간판·외관','')+shot(ICO('room'),'내부 전체','')+shot(ICO('star'),'대표 메뉴·시술·상품','3장 이상')+shot(ICO('hand'),'일하는 모습','')+shot(ICO('list'),'가격표·메뉴판','')+'</div>'+
+        '<ul class="tips"><li>가로보다 세로로 찍으면 카드뉴스에 잘 맞아요</li><li>손님 얼굴이 나온 사진은 빼 주세요</li></ul>'+
+        '<div class="up"><div><b>매장 사진 보내기</b><small>지금 '+S.files.store+'장</small></div><label class="btn sm sec">사진 고르기<input type="file" accept="image/*" multiple hidden data-up="store"></label></div></div>'+
+        '<p class="msg" id="upmsg" style="color:var(--s)"></p>'+
+        (agreed?'':'<label class="check"><input type="checkbox" id="v"><span>보낸 사진과 제 얼굴을 로컬피드가 만드는 제 매장 카드뉴스·영상에 쓰는 데 동의해요. 다른 곳에는 쓰지 않고, 언제든 그만 쓰게 하거나 지워 달라고 할 수 있어요.</span></label>')+
+        '<p class="msg" id="msg"></p><div class="stack">'+(agreed?'<button class="btn" id="close">다 보냈어요</button>':'<button class="btn" id="go">동의하고 보내기</button><button class="btn gray" id="later">나중에 보낼게요</button>')+'</div>';
+    }else if(id==='voice'){
+      var vdone=S.steps.voice==='done';
+      c=head(n,st,'자막만 있는 영상보다 대표님 목소리가 있으면 더 오래 봐요')+
+        why('가게에 왔을 때 듣던 목소리가 영상에서도 나오면 손님이 낯설어하지 않아요. 30초 녹음으로 대표님 목소리를 만들어, 대표님 매장 영상의 대본을 읽는 데만 써요. 원하지 않으시면 자막만 넣어요.')+
+        '<div class="sub"><h3>이 글을 편하게 읽어 주세요</h3><p class="script">안녕하세요, '+esc(S.store.name)+'입니다. 오늘도 찾아 주셔서 감사합니다. 날이 많이 추워졌죠. 오시는 길 조심하시고요, 궁금한 건 언제든 편하게 물어봐 주세요. 예약은 미리 해 주시면 기다리지 않고 바로 도와드릴 수 있어요. 그럼 가게에서 뵙겠습니다.</p>'+
+        '<div class="stack"><button class="btn sec" id="recBtn">'+(rec&&rec.on?'녹음 끝내기':'녹음 시작')+'</button><audio id="recPlay" controls hidden style="width:100%"></audio><button class="btn" id="recSend" hidden>이 녹음 보내기</button>'+
+        '<label class="btn gray">녹음 파일로 보내기<input type="file" accept="audio/*" hidden data-up="voice"></label></div><p class="msg" id="upmsg" style="color:var(--s)">조용한 곳에서, 휴대폰을 입에서 한 뼘쯤 떼고 읽어 주세요</p><p class="msg" style="color:var(--ok)">'+(S.files.voice?'받은 녹음 '+S.files.voice+'개':'')+'</p></div>'+
+        (vdone?'':'<label class="check"><input type="checkbox" id="v"><span>제 목소리로 AI 음성을 만들어 로컬피드가 만드는 제 매장 영상에만 쓰는 데 동의해요. 다른 곳에는 쓰지 않고, 언제든 그만 쓰게 하거나 지워 달라고 할 수 있어요.</span></label>')+
+        '<p class="msg" id="msg"></p><div class="stack">'+(vdone?'<button class="btn" id="close">닫기</button>':'<button class="btn" id="go">동의하고 끝내기</button><button class="btn gray" id="later">나중에 할게요</button><button class="btn gray" id="skipV">목소리는 안 쓸게요 (자막만)</button>')+'</div>';
     }else if(id==='blog'){
-      c=head(n,st,'매주 블로그에 올릴 글을 써 드려요')+
+      c=head(n,st,'매주 블로그에 올릴 글을 써 드려요')+why('네이버에서 가게를 찾는 손님은 블로그 글을 먼저 봐요. 글과 사진을 묶어 드리면 대표님이 복사해서 올리기만 하면 돼요. 5분이면 끝나요.')+
         '<input class="in" id="v" placeholder="https://blog.naver.com/아이디" inputmode="url"><p class="msg" id="msg"></p>'+
         '<div class="stack"><button class="btn" id="go">저장하기</button><button class="btn gray" id="none">블로그가 없어요</button></div>';
     }else if(id==='daangn'){
       if(st.wait) return head(n,st,'로컬피드가 수락하면 여기가 완료로 바뀌어요')+'<button class="btn gray" id="reload">새로고침</button>';
-      c=head(n,st,'로컬피드가 대표님 가게 소식을 대신 올려요')+
+      c=head(n,st,'로컬피드가 대표님 가게 소식을 대신 올려요')+why('당근은 다른 서비스가 대신 올리는 기능이 없어서, 운영자로 초대해 주셔야 소식을 올릴 수 있어요. 비밀번호는 필요 없고, 언제든 운영자에서 빼실 수 있어요.')+
         '<ol class="ol"><li>당근 앱 → 나의 당근 → <b>비즈프로필</b></li><li><b>설정 → 운영자 관리 → 운영자 추가</b></li><li><b>초대 링크</b>와 <b>초대 코드 6자리</b>가 같이 나와요. 복사하고 여기로 돌아와요</li><li>아래 첫 칸을 길게 눌러 <b>붙여넣기</b>. 코드가 자동으로 안 들어가면 둘째 칸에 직접 적어요</li></ol>'+
         '<textarea class="in" id="v" placeholder="복사한 초대 링크를 여기에 붙여 주세요"></textarea>'+
         '<input class="in" id="code" style="margin-top:8px;letter-spacing:2px" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="초대 코드 6자리">'+
-        '<p class="msg" id="msg"></p><button class="btn" id="go">로컬피드에 보내기</button>'+
+        '<p class="msg" id="msg"></p><div class="stack"><button class="btn" id="go">로컬피드에 보내기</button><button class="btn gray" id="skipDg">당근은 쓰지 않아요</button></div>'+
         '<p class="foot">비즈프로필이 아직 없으면 로컬피드에 알려 주세요. 같이 만들어요.</p>';
     }else if(id==='igbiz'){
       var m='<li>인스타 앱 → 프로필 → 오른쪽 위 ≡ → <b>설정 및 활동</b></li><li>아래로 내려 <b>프로필 유형 및 도구</b></li><li><b>프로페셔널 프로필로 전환</b> → 카테고리 고르기 → <b>비즈니스</b></li><li>연락처는 <b>사용 안 함</b>, Facebook 연결은 <b>건너뛰기</b></li>';
       var p='<li>instagram.com → 왼쪽 아래 ≡ → 설정 → <b>프로필 유형 및 도구</b></li><li><b>비즈니스</b> 화면에서 다음 → 카테고리 고르기 → 완료</li><li>"프로페셔널 프로필로 전환하시겠어요?" → <b>계속하기</b></li><li>연락처는 <b>사용 안 함</b> → 완료</li>';
-      c=head(n,st,'무료 · 게시물과 팔로워는 그대로 · 언제든 되돌려요')+
+      c=head(n,st,'무료 · 게시물과 팔로워는 그대로 · 언제든 되돌려요')+why('인스타는 비즈니스 계정에만 "대신 올리기"를 열어 줘요. 개인 계정으로는 로컬피드가 글을 올릴 수 없어요.')+
         '<div class="seg"><button data-d="m" class="'+(dev==='m'?'on':'')+'">휴대폰</button><button data-d="p" class="'+(dev==='p'?'on':'')+'">PC</button></div>'+
         '<ol class="ol">'+(dev==='m'?m:p)+'</ol>'+
         '<div class="caution"><span>계정이 공개로 바뀌어요. 개인 계정만 있다면 가게용 계정을 새로 만드는 걸 권해요.</span></div>'+
         '<input class="in" id="v" placeholder="인스타 아이디 (예: gyeol_hair)" autocapitalize="off" autocomplete="off" value="'+esc(S.igId)+'"><p class="msg" id="msg"></p><button class="btn" id="go">비즈니스로 전환했어요</button>';
     }else if(id==='ig'){
       if(st.wait) return head(n,st,'로컬피드가 준비를 마치면 여기가 열려요. 보통 10분 안이에요.')+'<button class="btn gray" id="reload">새로고침</button>';
-      c=head(n,st,'버튼 두 개만 누르면 끝나요')+
+      c=head(n,st,'버튼 두 개만 누르면 끝나요')+why('비밀번호를 받지 않고 인스타가 주는 "올리기" 권한만 받아요. 대표님이 좋아요를 누른 글만 올라가고, 메시지나 팔로워는 보지 않아요.')+
         '<div class="sub"><h3>① 초대 수락하기</h3><ol class="ol"><li>아래 버튼을 누르면 인스타가 열려요</li><li>맨 오른쪽 <b>테스터 초대</b> 탭</li><li><b>LocalFeed-IG</b> → <b>수락</b></li></ol><div class="caution"><span>초대가 안 보이면 가게 계정(@'+esc(S.igId)+')으로 로그인돼 있는지 확인해 주세요</span></div><a class="btn sec" target="_blank" rel="noopener" href="https://www.instagram.com/accounts/manage_access/">초대 수락하러 가기</a></div>'+
         '<div class="sub"><h3>② 연결하기</h3><ol class="ol"><li><b>Instagram으로 계속하기</b>를 눌러요 (Facebook 아님)</li><li>영어 화면이 나오면 <b>아래쪽 파란 버튼</b>만 눌러요</li></ol><div class="caution"><span>Cancel은 누르지 않아요</span></div><a class="btn" href="meta-connect.html?store='+encodeURIComponent(store)+'&ch=ig">인스타 연결하기</a></div>';
     }else if(id==='th'){
-      c=head(n,st,'인스타와 같은 순서예요')+
+      c=head(n,st,'인스타와 같은 순서예요')+why('스레드는 글만으로도 동네 사람들에게 잘 퍼져요. 인스타와 같은 계정이라 한 번만 연결하면 돼요.')+
         '<div class="sub"><h3>① 초대 수락하기</h3><ol class="ol"><li>스레드 → ≡ → 설정 → <b>계정</b> → <b>웹사이트 권한</b></li><li>맨 오른쪽 <b>초대</b> 탭</li><li><b>LocalFeed</b> → 검은 <b>수락</b> 버튼</li></ol><a class="btn sec" target="_blank" rel="noopener" href="https://www.threads.com/">스레드 열기</a></div>'+
         '<div class="sub"><h3>② 연결하기</h3><a class="btn" href="meta-connect.html?store='+encodeURIComponent(store)+'&ch=th">스레드 연결하기</a></div>'+
         '<p class="foot">스레드를 안 쓰신다면 인스타 아이디로 한 번 로그인만 하면 만들어져요.</p>';
     }else if(id==='tt'){
-      c=head(n,st,'영상은 틱톡 초안함으로 보내 드려요. 게시는 대표님이 눌러요.')+
+      c=head(n,st,'영상은 틱톡 초안함으로 보내 드려요. 게시는 대표님이 눌러요.')+why('만든 영상을 대표님 틱톡 초안함에 넣어 드려요. 음악을 고르고 게시를 누르는 건 대표님이 해요.')+
         '<a class="btn" href="connect.html?store='+encodeURIComponent(store)+'">틱톡 연결하기</a>';
     }
     return c;
+  }
+  function upmsg(t,bad){var e=document.getElementById('upmsg'); if(e){e.textContent=t;e.style.color=bad?'var(--bad)':'var(--s)';}}
+  function shrink(file){ return new Promise(function(res,rej){ var img=new Image(), u=URL.createObjectURL(file);
+    img.onload=function(){ var k=Math.min(1,1600/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(u); res({mime:'image/jpeg',data:c.toDataURL('image/jpeg',0.85).split(',')[1]}); };
+    img.onerror=function(){rej(new Error('사진을 읽지 못했어요. 다른 사진으로 해 주세요.'));}; img.src=u; }); }
+  function b64(blob){ return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){res({mime:(blob.type||'audio/webm').split(';')[0],data:String(fr.result).split(',')[1]});}; fr.onerror=function(){rej(new Error('파일을 읽지 못했어요.'));}; fr.readAsDataURL(blob); }); }
+  function upload(kind,files){
+    if(!files.length) return; var i=0, keep=forced; if(!forced){var st0=steps().filter(function(x){return x.id===(kind==='voice'?'voice':'photos')})[0]; forced=st0.id;}
+    function next(){
+      if(i>=files.length){ render(); upmsg('보냈어요.'); return; }
+      upmsg((i+1)+' / '+files.length+' 보내는 중…');
+      (kind==='voice'?b64(files[i]):shrink(files[i])).then(function(f){ return lfApi({action:'owner_upload',store:store,key:key,kind:kind,mime:f.mime,data:f.data}); })
+        .then(function(r){ if(!r.ok) throw new Error(r.error); S=norm(r); i++; next(); })
+        .catch(function(e){ render(); upmsg(e.message,true); });
+    }
+    next();
+  }
+  function recUI(){
+    var b=document.getElementById('recBtn'); if(!b) return;
+    var play=document.getElementById('recPlay'), send=document.getElementById('recSend');
+    if(rec&&rec.blob){ play.hidden=false; play.src=URL.createObjectURL(rec.blob); send.hidden=false; b.textContent='다시 녹음'; }
+    send.onclick=function(){ var bl=rec.blob; rec=null; upload('voice',[bl]); };
+    b.onclick=function(){
+      if(rec&&rec.on){ rec.mr.stop(); return; }
+      if(!navigator.mediaDevices||!window.MediaRecorder){ upmsg('이 브라우저에서는 바로 녹음이 안 돼요. 음성 메모로 녹음한 뒤 "녹음 파일로 보내기"를 눌러 주세요.',true); return; }
+      navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+        var mr=new MediaRecorder(stream), chunks=[]; rec={on:true,mr:mr};
+        mr.ondataavailable=function(e){ if(e.data.size) chunks.push(e.data); };
+        mr.onstop=function(){ stream.getTracks().forEach(function(t){t.stop();}); rec={on:false,blob:new Blob(chunks,{type:mr.mimeType||'audio/webm'})}; render(); };
+        mr.start(); b.textContent='녹음 끝내기'; upmsg('녹음 중이에요. 다 읽으면 "녹음 끝내기"를 눌러 주세요.');
+        setTimeout(function(){ if(rec&&rec.on&&rec.mr===mr) mr.stop(); },90000);
+      }).catch(function(){ upmsg('마이크를 쓸 수 없어요. 마이크 허용을 눌러 주시거나 "녹음 파일로 보내기"를 써 주세요.',true); });
+    };
   }
   function md(d){var p=String(d||'').split('-');return p.length===3?(+p[1])+'월 '+(+p[2])+'일':'';}
   function planCard(){
@@ -118,16 +202,17 @@
   }
   function render(){
     var st=steps(), done=st.filter(function(x){return x.done}).length, total=st.length;
-    var cur=null,i; for(i=0;i<st.length;i++){ if(!st[i].done&&!st[i].lock&&!st[i].wait){cur=i;break;} }
+    var cur=null,i; for(i=0;i<st.length;i++){ if(st[i].id===forced){cur=i;break;} }
+    if(cur===null) for(i=0;i<st.length;i++){ if(!st[i].done&&!st[i].lock&&!st[i].wait){cur=i;break;} }
     if(cur===null) for(i=0;i<st.length;i++){ if(!st[i].done&&st[i].wait){cur=i;break;} }
     document.title=S.store.name+' · 로컬피드';
     if(done===total){h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';}
-    else{h1.innerHTML='대표님, '+total+'가지만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
+    else{h1.innerHTML='대표님, 처음 한 번만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
     var html=planCard()+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'하나씩 차례로 해요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
     function rows(list){return '<div class="card tight">'+list.map(function(x){
-      var chip=x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
+      var chip=x.s.later?'<span class="chip warn">나중에</span>':x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
       var name=x.s.id==='ig'&&S.igName?S.igName:x.s.id==='th'&&S.thName?S.thName:x.s.id==='tt'&&S.ttName?S.ttName:x.s.d;
-      return '<div class="row'+(x.s.done?'':' dim')+'">'+tile(x.s.ic,x.s.done)+'<div class="g"><b>'+x.s.t+'</b><small>'+esc(x.s.done&&name?name:x.s.d)+'</small></div>'+chip+'</div>';
+      return '<div class="row'+(x.s.done?'':' dim')+'"'+(x.s.reopen&&x.s.done?' data-open="'+x.s.id+'" style="cursor:pointer"':'')+'>'+tile(x.s.ic,x.s.done&&!x.s.later)+'<div class="g"><b>'+x.s.t+'</b><small>'+esc(x.s.done&&name?name:x.s.d)+'</small></div>'+chip+'</div>';
     }).join('')+'</div>';}
     var before=[],after=[];
     st.forEach(function(s,i){ if(i===cur) return; (cur===null||i<cur?before:after).push({s:s,i:i}); });
@@ -140,15 +225,28 @@
     function pick(){ if(!codeEl||codeEl.value) return; var t=v.value.replace(/https?:\/\/\S+/g,' '); var x=t.match(/코드[^A-Za-z0-9]{0,12}([A-Za-z0-9]{6})(?![A-Za-z0-9])/)||t.match(/(?:^|[^A-Za-z0-9])(\d{6})(?![A-Za-z0-9])/); if(x) codeEl.value=x[1]; }
     if(codeEl){ v.addEventListener('input',pick); v.addEventListener('paste',function(){setTimeout(pick,0);}); }
     if(go&&cur!==null){ var id=st[cur].id; go.onclick=function(){
-      var val=id==='photos'?(v.checked?'agree':''):v.value;
+      var val=!v?'':id==='photos'?(v.checked?'agree':''):v.value;
       if(id==='daangn'){ pick(); val='코드:'+codeEl.value.trim()+' '+v.value; }
-      save(id, val, go); }; }
+      if(id==='place'&&online){ id2='online'; val=v.value.trim()+'\n'+document.getElementById('intro').value; }
+      if(id==='photos'||id==='voice'){ val=v&&v.checked?'agree':''; forced=null; }
+      if(id==='intro'){ var G=function(x){return document.getElementById(x).value;}; val=JSON.stringify({industry:G('i_ind'),dong:G('i_dong'),menu:G('i_menu'),customer:G('i_cus'),strong:G('i_str'),like:G('i_like')}); forced=null; }
+      save(id2||id, val, go); }; }
+    [].forEach.call(document.querySelectorAll('[data-open]'),function(r){r.onclick=function(){forced=r.dataset.open;render();window.scrollTo(0,0);};});
+    var cl=document.getElementById('close'); if(cl) cl.onclick=function(){forced=null;render();};
+    var lt=document.getElementById('later'); if(lt&&cur!==null) lt.onclick=function(){forced=null;save(st[cur].id,'later',lt);};
+    var sk=document.getElementById('skipV'); if(sk) sk.onclick=function(){forced=null;save('voice','skip',sk);};
+    [].forEach.call(document.querySelectorAll('[data-up]'),function(inp){inp.onchange=function(){upload(inp.dataset.up,[].slice.call(inp.files));};});
+    recUI();
+    var id2=null, a1=document.getElementById('toOnline'), a2=document.getElementById('toPlace'), a3=document.getElementById('skipDg');
+    if(a1) a1.onclick=function(){online=true;render();};
+    if(a2) a2.onclick=function(){online=false;render();};
+    if(a3) a3.onclick=function(){ if(window.confirm('당근에는 올리지 않을까요? 나중에 다시 켤 수 있어요.')) save('daangn_skip','1',a3); };
     var none=document.getElementById('none'); if(none) none.onclick=function(){save('blog','없음',none);};
     var rl=document.getElementById('reload'); if(rl) rl.onclick=load;
     [].forEach.call(document.querySelectorAll('.seg button'),function(b){b.onclick=function(){dev=b.dataset.d;render();};});
   }
   function load(){
-    return lfApi({action:'owner_state',store:store,key:key}).then(function(r){ if(!r.ok) throw new Error(r.error); S=r; render(); })
+    return lfApi({action:'owner_state',store:store,key:key}).then(function(r){ if(!r.ok) throw new Error(r.error); S=norm(r); render(); })
       .catch(function(e){ if(!S) fail(e.message); });
   }
   document.addEventListener('visibilitychange',function(){ if(!document.hidden&&S) load(); });
