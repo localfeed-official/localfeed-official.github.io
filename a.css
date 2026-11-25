@@ -114,3 +114,8 @@ label.btn{cursor:pointer}
 .fld{display:block;margin-bottom:12px}
 .fld span{display:block;font-size:13px;font-weight:700;color:#4E5968;margin-bottom:6px}
 .fld textarea.in{min-height:76px}
+
+/* AI 예시 사진 */
+.ph{width:100%;border-radius:10px;background-color:var(--bg);background-repeat:no-repeat}
+.shots figure{padding:6px 6px 8px}
+.ainote{font-size:11px;color:var(--s);margin:-4px 0 10px}

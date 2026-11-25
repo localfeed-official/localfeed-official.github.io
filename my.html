@@ -75,6 +75,9 @@
   var IC2={store:'<path d="M14 44v40h52V44M10 44l6-20h48l6 20a10 10 0 0 1-20 0 10 10 0 0 1-20 0 10 10 0 0 1-20 0zM32 84V62h16v22"/>',room:'<path d="M10 30l30-14 30 14v54H10zM10 66h60M28 66V46h24v20"/>',star:'<path d="M40 18l7 15 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z"/>',hand:'<path d="M22 84V52l12-8V26a5 5 0 0 1 10 0v18l14 4a8 8 0 0 1 6 8v28"/>',list:'<rect x="16" y="14" width="48" height="72" rx="6"/><path d="M26 32h28M26 46h28M26 60h18"/>'};
   function ICO(k){return fig(IC2[k]);}
   function shot(svgs,t,d){return '<figure>'+svgs+'<figcaption><b>'+t+'</b>'+(d?'<br>'+d:'')+'</figcaption></figure>';}
+  // AI로 만든 예시 사진 (가상의 인물·가게). 한 장에 나란히 붙인 그림에서 칸만 잘라 보여 준다.
+  var GF=EX+'0678a2ad-ee90-43d1-aedf-0fa5abbc53fc.jpg', GS=EX+'7756a8d3-f68d-44a4-8db9-54e741fec9b1.jpg';
+  function ph(url,n,i,ratio){return '<div class="ph" style="aspect-ratio:'+ratio+';background-image:url('+url+');background-size:'+(n*100)+'% 100%;background-position:'+(n>1?i*100/(n-1):0)+'% 0"></div>';}
   function head(n,st,subt){return '<div class="head">'+tile(st.ic,false,true)+'<div><div class="n">'+n+'번째</div><h2>'+st.t+'</h2><p>'+subt+'</p></div></div>';}
   function body(st,n){
     var c='', id=st.id;
@@ -103,10 +106,10 @@
       var agreed=S.steps.photos==='done';
       c=head(n,st,'남의 사진이 아니라 대표님 가게 사진으로 만들어요')+
         why('가게 사진이 들어가야 손님이 "아, 거기" 하고 알아봐요. 얼굴 사진 한 장으로는 대표님이 직접 말하는 12초 영상을 만들어요. 영상에는 AI로 만들었다는 표시가 붙어요.',[['26796baf-f39d-4ed2-990c-11f057e4102b.jpg','매장 사진 → 카드뉴스'],['d54ad1cb-e978-45fa-8ada-8fe9a2756814.jpg','얼굴 사진 → 12초 영상']])+
-        '<div class="sub"><h3>대표님 얼굴 사진 3장</h3><div class="shots">'+shot(FACE1,'① 정면','카메라를 똑바로')+shot(FACE2,'② 살짝 옆','고개를 조금 돌려서')+shot(FACE3,'③ 상반신','웃는 얼굴로')+'</div>'+
+        '<div class="sub"><h3>대표님 얼굴 사진 3장</h3><div class="shots">'+shot(ph(GF,3,0,'2/3'),'① 정면','카메라를 똑바로')+shot(ph(GF,3,1,'2/3'),'② 살짝 옆','고개를 조금 돌려서')+shot(ph(GF,3,2,'2/3'),'③ 상반신','웃는 얼굴로')+'</div><p class="ainote">예시 사진은 AI로 만든 가상의 인물이에요</p>'+
         '<ul class="tips"><li>창가처럼 밝은 곳에서, 혼자 찍어요</li><li>모자·마스크·선글라스는 벗고, 보정 앱은 쓰지 않아요</li><li>세 장이 비슷한 날, 비슷한 머리와 옷이면 영상이 자연스러워요</li></ul>'+
         '<div class="up"><div><b>얼굴 사진 보내기</b><small>지금 '+S.files.face+' / 3장</small></div><label class="btn sm sec">사진 고르기<input type="file" accept="image/*" multiple hidden data-up="face"></label></div></div>'+
-        '<div class="sub"><h3>매장 사진 10장쯤</h3><div class="shots five">'+shot(ICO('store'),'간판·외관','')+shot(ICO('room'),'내부 전체','')+shot(ICO('star'),'대표 메뉴·시술·상품','3장 이상')+shot(ICO('hand'),'일하는 모습','')+shot(ICO('list'),'가격표·메뉴판','')+'</div>'+
+        '<div class="sub"><h3>매장 사진 10장쯤</h3><div class="shots five">'+shot(ph(GS,5,0,'4/5'),'간판·외관','')+shot(ph(GS,5,1,'4/5'),'내부 전체','')+shot(ph(GS,5,2,'4/5'),'대표 메뉴·시술·상품','3장 이상')+shot(ph(GS,5,3,'4/5'),'일하는 모습','')+shot(ph(GS,5,4,'4/5'),'가격표·메뉴판','')+'</div><p class="ainote">예시 사진은 AI로 만든 가상의 가게예요</p>'+
         '<ul class="tips"><li>가로보다 세로로 찍으면 카드뉴스에 잘 맞아요</li><li>손님 얼굴이 나온 사진은 빼 주세요</li></ul>'+
         '<div class="up"><div><b>매장 사진 보내기</b><small>지금 '+S.files.store+'장</small></div><label class="btn sm sec">사진 고르기<input type="file" accept="image/*" multiple hidden data-up="store"></label></div></div>'+
         '<p class="msg" id="upmsg" style="color:var(--s)"></p>'+
