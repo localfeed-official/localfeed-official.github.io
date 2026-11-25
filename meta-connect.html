@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>인스타그램 · 스레드 연결 · 로컬피드 LocalFeed</title>
+<link rel="icon" href="icons/logo.svg">
 <link rel="stylesheet" href="style.css">
 <style>
 .box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-top:20px}
@@ -37,10 +38,10 @@
   var store=q.get('store'), ch=q.get('ch')==='th'?'th':'ig';
   var T={
     ig:{h:'인스타그램 연결하기',btn:'인스타그램으로 연결하기',cls:'ig',
-        perm:['기본 프로필(계정 이름, 프로필 사진): 어느 계정이 연결됐는지 확인하려고 씁니다.','콘텐츠 게시: 사장님이 확인 페이지에서 승인한 카드뉴스와 영상만 정해진 날에 올립니다.'],
+        perm:['기본 프로필(계정 이름, 프로필 사진): 어느 계정이 연결됐는지 확인하려고 씁니다.','콘텐츠 게시: 대표님이 확인 페이지에서 승인한 카드뉴스와 영상만 정해진 날에 올립니다.'],
         en:'Connect your Instagram professional account. LocalFeed requests instagram_basic and instagram_content_publish, and only publishes posts you approved on the LocalFeed review page.'},
     th:{h:'스레드 연결하기',btn:'스레드로 연결하기',cls:'th',
-        perm:['기본 프로필(계정 이름, 프로필 사진): 어느 계정이 연결됐는지 확인하려고 씁니다.','글 게시: 사장님이 확인 페이지에서 승인한 글만 정해진 날에 올립니다.'],
+        perm:['기본 프로필(계정 이름, 프로필 사진): 어느 계정이 연결됐는지 확인하려고 씁니다.','글 게시: 대표님이 확인 페이지에서 승인한 글만 정해진 날에 올립니다.'],
         en:'Connect your Threads profile. LocalFeed requests threads_basic and threads_content_publish, and only publishes posts you approved on the LocalFeed review page.'}
   }[ch];
   document.getElementById('h').textContent=T.h;
