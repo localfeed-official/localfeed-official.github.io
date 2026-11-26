@@ -59,14 +59,15 @@
     }
     return cv;
   }
-  // 규칙: 모든 카드뉴스의 맨 끝에 로컬피드 로고와 이름이 들어간 장을 한 장 붙인다.
+  // 규칙: 무료 체험 중인 매장의 카드뉴스 맨 끝에 로컬피드 로고와 이름이 들어간 장을 한 장 붙인다. 유료 매장에는 붙이지 않는다.
   function credit(o){ var cv=document.createElement('canvas'); cv.width=W; cv.height=H; var ctx=cv.getContext('2d'); ctx.textBaseline='top'; ctx.textAlign='center';
     ctx.fillStyle='#F2F4F6'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; rr(ctx,56,56,W-112,H-112,56); ctx.fill();
     var lg=o.logos&&o.logos['logo.svg'], y=360;
     if(lg){ ctx.drawImage(lg,(W-220)/2,y,220,220); } else { ctx.fillStyle='#2B64F5'; rr(ctx,(W-220)/2,y,220,220,56); ctx.fill(); }
     ctx.fillStyle='#191F28'; ctx.font='800 104px '+F; ctx.fillText('로컬피드',W/2,y+280);
-    ctx.fillStyle='#4E5968'; ctx.font='500 46px '+F; ctx.fillText('가게 SNS, 대신 올려 드려요',W/2,y+430);
-    ctx.fillStyle='#2B64F5'; ctx.font='700 44px '+F; ctx.fillText('localfeed.co.kr',W/2,y+520);
+    ctx.fillStyle='#191F28'; ctx.font='700 50px '+F; ctx.fillText('매출로 이어지는 통합 SNS 관리',W/2,y+430);
+    ctx.fillStyle='#6B7684'; ctx.font='500 36px '+F; ctx.fillText('인스타 · 스레드 · 당근 · 틱톡 · 블로그',W/2,y+510);
+    ctx.fillStyle='#2B64F5'; ctx.font='700 44px '+F; ctx.fillText('localfeed.co.kr',W/2,y+590);
     ctx.fillStyle='#8B95A1'; ctx.font='500 32px '+F; ctx.fillText('이 카드뉴스는 로컬피드가 만들었어요',W/2,H-186);
     return cv; }
   window.lfCards={ parse:parse,
@@ -75,5 +76,5 @@
     load:function(mime,b64){ return new Promise(function(res,rej){ var im=new Image(); im.onload=function(){res(im);}; im.onerror=function(){rej(new Error('사진을 읽지 못했어요.'));}; im.src='data:'+(mime||'image/jpeg')+';base64,'+b64; }); },
     render:function(pages,o){ var P=parse(pages); if(P.length<2) return Promise.reject(new Error('장별 문구가 없어 카드를 만들 수 없어요.'));
       var ready=document.fonts&&document.fonts.load?Promise.all([document.fonts.load("800 80px 'Gothic A1'"),document.fonts.load("600 36px 'Gothic A1'"),document.fonts.load("700 38px 'Gothic A1'")]).catch(function(){}):Promise.resolve();
-      return ready.then(function(){ var L=P.slice(0,9).map(function(p,i){ return draw(p,i,Math.min(P.length,9),o||{}); }); L.push(credit(o||{})); return L; }); } };
+      return ready.then(function(){ var L=P.slice(0,9).map(function(p,i){ return draw(p,i,Math.min(P.length,9),o||{}); }); if(!o||o.credit!==false) L.push(credit(o||{})); return L; }); } };
 })();
