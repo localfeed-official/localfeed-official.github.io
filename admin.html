@@ -221,7 +221,7 @@
     [].forEach.call(document.querySelectorAll('[data-make]'),function(b){ if(BUSY.make){ b.disabled=true; b.textContent='만드는 중…'; }
       b.onclick=function(){ var rows=b.dataset.make.split(',').filter(Boolean); if(!rows.length||!window.confirm(rows.length+'건의 채널별 글을 만들까요? 한 건에 2분쯤 걸리고 작성 비용이 듭니다. 다른 메뉴를 봐도 되지만 이 창은 닫지 마세요.')) return; b.disabled=true; b.textContent='만드는 중…'; makeTexts(rows); };});
     [].forEach.call(document.querySelectorAll('[data-blog]'),function(b){b.onclick=function(){ b.dataset.job='블로그 글 쓰기'; call({action:'admin_make_blog',id:b.dataset.blog},b); };});
-    [].forEach.call(document.querySelectorAll('[data-cards]'),function(b){ if(BUSY.cards){ b.disabled=true; b.textContent='그리는 중…'; } });
+    [].forEach.call(document.querySelectorAll('[data-cards]'),function(b){ if(BUSY.cards){ b.disabled=true; b.textContent='그리는 중…'; } b.onclick=function(){ var ids=b.dataset.cards.split(',').filter(Boolean); if(!ids.length) return; b.disabled=true; b.textContent='그리는 중…'; makeCards(ids); }; });
     [].forEach.call(document.querySelectorAll('[data-wdo]'),function(b){b.onclick=function(){ call({action:'admin_content',id:b.dataset.id,what:b.dataset.wdo},b); };});
     [].forEach.call(document.querySelectorAll('[data-wedit]'),function(b){b.onclick=function(){ editW=b.dataset.wedit||null; if(editW) openW=editW.split('|')[0]; render(); };});
     [].forEach.call(document.querySelectorAll('[data-wsave]'),function(b){b.onclick=function(){ var k=b.dataset.wsave.split('|'), v=$('wT').value; editW=null; call({action:'admin_content',id:k[0],what:'edit',ch:k[1],value:v},b); };});
