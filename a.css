@@ -221,3 +221,7 @@ details.more>summary::-webkit-details-marker{display:none}
 #jobs div{background:#191F28;color:#fff;font-size:13px;font-weight:600;padding:12px 16px;border-radius:14px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
 #jobs i{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:lfspin .8s linear infinite;flex:none}
 @keyframes lfspin{to{transform:rotate(360deg)}}
+
+.note{background:var(--bg);border-radius:16px;padding:14px;margin:4px 0 10px}
+.note b{display:block;font-size:14px}
+.note small{display:block;font-size:12px;color:var(--s);margin-top:2px;line-height:1.5}

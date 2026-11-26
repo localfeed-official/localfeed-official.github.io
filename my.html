@@ -102,6 +102,7 @@
         fld('i_cus','주로 어떤 손님이 오시나요?','예: 30~40대 직장인 여성, 근처 주민',I.customer)+
         fld('i_str','우리 가게만의 자랑 한 줄','예: 1인 예약제라 기다리지 않아요',I.strong)+
         fld('i_like','닮고 싶은 가게나 계정 (선택)','예: 인스타 @○○헤어, 옆 동네 ○○베이커리',I.like)+
+        '<label class="fld"><span>대표님이 직접 쓴 글 2~3개 (선택)</span><textarea class="in" id="i_sample" style="min-height:110px" placeholder="예전에 인스타나 당근, 카톡 공지에 올린 글을 그대로 붙여 주세요. 말투를 따라 써서 대표님이 쓴 글처럼 만들어요.">'+esc(I.sample||'')+'</textarea></label>'+
         '<p class="msg" id="msg"></p><button class="btn" id="go">저장하기</button>';
     }else if(id==='photos'){
       var agreed=S.steps.photos==='done';
@@ -224,6 +225,7 @@
     var w=String(wk).split('-');
     if(!wait&&!fixRow) return '<details class="card fold"><summary><span><b>이번 주 주제 '+L.length+'건</b><small>확인이 끝났어요</small></span><em>보기</em></summary>'+L.map(function(p){return '<div class="pl"><div class="pf">'+esc(p.form)+'</div><b style="font-size:15px">'+esc(p.topic)+'</b></div>';}).join('')+'</details>';
     return '<div class="card"><b style="font-size:17px">'+(wait?'이번 주 올릴 내용을 봐 주세요':'이번 주 기획 확인이 끝났어요')+'</b><small style="display:block;color:var(--s);font-size:13px;margin:4px 0 10px">'+(+w[1])+'월 '+(+w[2])+'일 주 · '+L.length+'건'+(wait?' 중 '+wait+'건 남았어요 · 좋아요를 누른 것만 만들어요':' · 이제 로컬피드가 만들어서 다시 보여 드려요')+'</small>'+
+      '<div class="note"><b>이번 주 가게에서 있었던 일 한 줄 (선택)</b><small>적어 주시면 글이 훨씬 대표님 글처럼 나와요. 예: 화요일에 단골 손님이 딸 데리고 오셨어요</small><textarea class="in" id="wkN" style="min-height:64px;margin-top:8px" maxlength="300">'+esc(S.weeknote||'')+'</textarea><p class="msg" id="wkM"></p><button class="btn gray" id="wkB" style="margin-top:4px">'+(S.weeknote?'고쳐서 저장':'저장')+'</button></div>'+
       L.map(function(p){ var okd=/^좋아요/.test(p.owner), fx=/^수정/.test(p.owner);
         return '<details class="pl"'+(/^대기/.test(p.owner)&&!fixRow||fixRow===p.row?' open':'')+'><summary><span class="pf">'+esc(p.form)+'</span><b>'+esc(p.topic)+'</b><span class="ps">'+(okd?'<span class="chip ok">좋아요</span>':fx?'<span class="chip warn">고치는 중</span>':'<span class="chip soft">확인 전</span>')+'</span></summary><ol>'+p.pages.split(' / ').map(function(x){return '<li>'+esc(x.replace(/^\d+\s*/,''))+'</li>';}).join('')+'</ol>'+
           (fx&&p.note?'<small>보내신 말: '+esc(p.note)+'</small>':'')+
@@ -299,7 +301,7 @@
       if(id==='daangn'){ pick(); val='코드:'+codeEl.value.trim()+' '+v.value; }
       if(id==='place'&&online){ id2='online'; val=v.value.trim()+'\n'+document.getElementById('intro').value; }
       if(id==='photos'||id==='voice'){ val=v&&v.checked?'agree':''; forced=null; }
-      if(id==='intro'){ var G=function(x){return document.getElementById(x).value;}; val=JSON.stringify({industry:G('i_ind'),dong:G('i_dong'),menu:G('i_menu'),customer:G('i_cus'),strong:G('i_str'),like:G('i_like')}); forced=null; }
+      if(id==='intro'){ var G=function(x){return document.getElementById(x).value;}; val=JSON.stringify({industry:G('i_ind'),dong:G('i_dong'),menu:G('i_menu'),customer:G('i_cus'),strong:G('i_str'),like:G('i_like'),sample:G('i_sample')}); forced=null; }
       save(id2||id, val, go); }; }
     [].forEach.call(document.querySelectorAll('[data-open]'),function(r){r.onclick=function(){forced=r.dataset.open;render();window.scrollTo(0,0);};});
     var cl=document.getElementById('close'); if(cl) cl.onclick=function(){forced=null;render();};
@@ -319,6 +321,7 @@
     [].forEach.call(document.querySelectorAll('[data-wfixno]'),function(b){b.onclick=function(){fixW=null;render();};});
     [].forEach.call(document.querySelectorAll('[data-wfixgo]'),function(b){b.onclick=function(){workCall(b,b.dataset.wfixgo,'0',document.getElementById('fixWT').value,document.getElementById('fixWM'));};});
     [].forEach.call(document.querySelectorAll('[data-copyw]'),function(b){b.onclick=function(ev){ ev.preventDefault(); var c=(S.works||[]).filter(function(x){return x.id===b.dataset.copyw})[0]; if(!c) return; var t=c.text['블로그 글']; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='복사했어요';},function(){window.prompt('아래 글을 복사해 주세요',t);}); };});
+    var wk=document.getElementById('wkB'); if(wk) wk.onclick=function(){ var M=document.getElementById('wkM'); wk.disabled=true; lfApi({action:'owner_save',store:store,key:key,field:'weeknote',value:document.getElementById('wkN').value}).then(function(r){ if(!r.ok) throw new Error(r.error); S=norm(r); render(); var m2=document.getElementById('wkM'); if(m2){ m2.style.color='var(--ok)'; m2.textContent='저장했어요. 이번 주 글에 넣을게요.'; } }).catch(function(e){ M.textContent=e.message; wk.disabled=false; }); };
     function planCall(b,row,ok,memo,M){ b.disabled=true; lfApi({action:'owner_plan',store:store,key:key,row:row,ok:ok,memo:memo}).then(function(r){ if(!r.ok) throw new Error(r.error); fixRow=null; S=norm(r); render(); }).catch(function(e){ b.disabled=false; if(M) M.textContent=e.message; else window.alert(e.message); }); }
     [].forEach.call(document.querySelectorAll('[data-pok]'),function(b){b.onclick=function(){planCall(b,b.dataset.pok,'1','');};});
     [].forEach.call(document.querySelectorAll('[data-pfix]'),function(b){b.onclick=function(){fixRow=+b.dataset.pfix;render();var t=document.getElementById('fixT'); if(t) t.focus();};});

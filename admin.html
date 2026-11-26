@@ -33,9 +33,20 @@
   function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function say(t){var m=$('msg'); m.textContent=t||''; m.className=t?'msg banner':'msg'; if(t){ try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){window.scrollTo(0,0);} }}
   function copy(t,btn){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){var o=btn.textContent;btn.textContent='복사됨';setTimeout(function(){btn.textContent=o},1200);}).catch(function(){window.prompt('길게 눌러 복사하세요',t);}); }
-  function makeCards(ids){ if(!ids.length) return; var i=0, last=null, J=job('카드 그리기 시작');
+  var BUSY={make:false,cards:false};
+  // 글 만들기: 한 건마다 짧은 글 → 블로그 글 순서로 따로 요청한다. 메뉴를 옮겨도 계속 돈다.
+  function makeTexts(rows){ if(BUSY.make) return; BUSY.make=true; var i=0, J=job('글 만들기 시작');
+    function stop(msg){ BUSY.make=false; J.end(); render(); if(msg) say(msg); }
+    (function next(){ if(i>=rows.length) return stop('');
+      J.set('글 만드는 중 '+(i+1)+'/'+rows.length+' · 다른 메뉴를 봐도 계속 돼요');
+      _api({action:'admin_make_one',k:K,row:rows[i]}).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); render();
+        var need=D.works.filter(function(c){return !c.text['블로그 글'];}).map(function(c){return c.id;});
+        return (function blog(n){ if(n>=need.length) return null; J.set('블로그 글 쓰는 중 '+(i+1)+'/'+rows.length);
+          return _api({action:'admin_make_blog',k:K,id:need[n]}).then(function(r2){ if(r2.ok){ D=norm(r2); render(); } return blog(n+1); }); })(0);
+      }).then(function(){ i++; next(); }).catch(function(e){ stop((i+1)+'번째에서 멈췄어요: '+e.message+' (이미 만든 것은 남아 있어요. 다시 누르면 남은 것부터 만듭니다)'); }); })(); }
+  function makeCards(ids){ if(!ids.length||BUSY.cards) return; BUSY.cards=true; var i=0, last=null, J=job('카드 그리기 시작');
     function b64(cv){ return cv.toDataURL('image/jpeg',0.9).split(',')[1]; }
-    (function next(){ if(i>=ids.length){ J.end(); if(last) D=last; render(); return; }
+    (function next(){ if(i>=ids.length){ BUSY.cards=false; J.end(); if(last) D=last; render(); return; }
       var c=D.works.filter(function(x){return x.id===ids[i]})[0], st=c&&D.stores.filter(function(x){return x.code===c.store})[0]||{};
       if(!c){ i++; return next(); }
       J.set('카드 그리는 중 '+(i+1)+'/'+ids.length);
@@ -48,7 +59,7 @@
       }).catch(function(){ return {}; }).then(function(pic){ return lfCards.render(c.pages,{name:st.name||'',color:st.color||'',insta:st.insta||st.igName||'',kicker:st.industry||'',cover:pic.cover||null,last:pic.last||null}); }).then(function(L){ var urls=[], n=0;
         return (function up(){ if(n>=L.length) return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')});
           J.set('카드 올리는 중 '+(i+1)+'/'+ids.length+' · '+(n+1)+'/'+L.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:n+1,data:b64(L[n])}).then(function(r){ if(!r.ok) throw new Error(r.error); urls.push(r.url); n++; return up(); }); })();
-      }).then(function(r){ if(!r.ok) throw new Error(r.error); last=norm(r); D=last; i++; next(); }).catch(function(e){ J.end(); if(last) D=last; render(); say('카드 만들기가 멈췄어요: '+e.message); }); })(); }
+      }).then(function(r){ if(!r.ok) throw new Error(r.error); last=norm(r); D=last; i++; next(); }).catch(function(e){ BUSY.cards=false; J.end(); if(last) D=last; render(); say('카드 만들기가 멈췄어요: '+e.message); }); })(); }
   var JOBS={}, jn=0;
   function drawJobs(){ var el=$('jobs'), k=Object.keys(JOBS); el.hidden=!k.length; el.innerHTML=k.map(function(i){return '<div><i></i>'+esc(JOBS[i])+'</div>';}).join(''); }
   function job(label){ var id=++jn; JOBS[id]=label; drawJobs(); return { set:function(t){ if(JOBS[id]!==undefined){JOBS[id]=t;drawJobs();} }, end:function(){ delete JOBS[id]; drawJobs(); } }; }
@@ -167,7 +178,7 @@
       (c.ownerMemo?'<div class="caution" style="margin:8px 0"><b>매장 대표님 한 줄</b> '+esc(c.ownerMemo)+'</div>':'')+
       CH.map(function(h){ var k=c.id+'|'+h[0];
         return '<div class="wt"><div class="wh"><b>'+h[1]+'</b><span><button class="link" data-wedit="'+esc(k)+'">직접 고치기</button> · <button class="link" data-wrev="'+esc(c.id)+'" data-ch="'+esc(h[0])+'">말로 고치기</button></span></div>'+
-          (editW===k?'<textarea class="in" id="wT" style="min-height:'+(h[0]==='블로그 글'?'320':'130')+'px">'+esc(c.text[h[0]])+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-wsave="'+esc(k)+'">저장</button><button class="btn sm gray" data-wedit="">취소</button></div>':'<p>'+esc(c.text[h[0]]||'(없음)')+'</p>')+'</div>'; }).join('')+
+          (h[0]==='블로그 글'&&!c.text[h[0]]&&editW!==k?'<p>(아직 없음) <button class="link" data-blog="'+esc(c.id)+'">블로그 글 쓰기</button></p>':editW===k?'<textarea class="in" id="wT" style="min-height:'+(h[0]==='블로그 글'?'320':'130')+'px">'+esc(c.text[h[0]])+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-wsave="'+esc(k)+'">저장</button><button class="btn sm gray" data-wedit="">취소</button></div>':'<p>'+esc(c.text[h[0]]||'(없음)')+'</p>')+'</div>'; }).join('')+
       (!/^쇼츠/.test(c.form)?'<small><b>표지 사진</b> '+(c.art?'소재 이미지 사용 · ':'매장이 보낸 사진을 씁니다(없으면 글자만) · ')+'<button class="link" data-art="'+esc(c.id)+'">소재 이미지 주소 넣기</button></small>':'')+
       (c.check?'<small><b>검수</b> '+esc(c.check)+'</small>':'')+(c.memo?'<small><b>메모</b> '+esc(c.memo)+'</small>':'')+
       '<div class="acts" style="margin-top:10px">'+(c.pages&&!/^쇼츠/.test(c.form)?'<button class="btn sm gray" data-cards="'+esc(c.id)+'">'+(c.media.length?'카드 다시 만들기':'카드 만들기')+'</button>':'')+'<button class="btn sm gray" data-wrev="'+esc(c.id)+'" data-ch="">전체를 말로 고치기</button>'+(/^(대표님 확인|수정)/.test(c.status)||!c.status?'<button class="btn sm" data-wdo="send" data-id="'+esc(c.id)+'">매장에 보내기</button>':/^매장 확인/.test(c.status)?'<button class="btn sm gray" data-wdo="hold" data-id="'+esc(c.id)+'">보낸 것 거두기</button>':/^(확정|게시 실패)/.test(c.status)?'<button class="btn sm" data-pubnow="'+esc(c.id)+'">지금 올리기</button>':'')+'</div></details>'; }
@@ -203,10 +214,10 @@
     [].forEach.call(document.querySelectorAll('[data-planedit]'),function(b){b.onclick=function(){ editRow=+b.dataset.planedit||null; render(); };});
     [].forEach.call(document.querySelectorAll('[data-plansave]'),function(b){b.onclick=function(){ var r=b.dataset.plansave; editRow=null; call({action:'admin_plan_edit',row:r,topic:$('eT').value,pages:$('eP').value},b); };});
     [].forEach.call(document.querySelectorAll('details[data-wid]'),function(d){d.addEventListener('toggle',function(){ if(d.open) openW=d.dataset.wid; else if(openW===d.dataset.wid) openW=null; });});
-    [].forEach.call(document.querySelectorAll('[data-make]'),function(b){b.onclick=function(){ var rows=b.dataset.make.split(',').filter(Boolean); if(!rows.length||!window.confirm(rows.length+'건의 채널별 글을 만들까요? 한 건에 1분쯤 걸리고 작성 비용이 듭니다. 끝날 때까지 이 화면을 닫지 마세요.')) return;
-        b.disabled=true; var i=0, last=null, J=job('글 만들기 시작'); (function next(){ if(i>=rows.length){ J.end(); if(last){D=last;} render(); return; } b.textContent=(i+1)+'/'+rows.length+' 만드는 중…'; J.set('글 만드는 중 '+(i+1)+'/'+rows.length+' · 다른 메뉴를 봐도 계속 돼요'); _api({action:'admin_make_one',k:K,row:rows[i]}).then(function(r){ if(!r.ok) throw new Error(r.error); last=norm(r); i++; next(); }).catch(function(e){ J.end(); if(last) D=last; render(); say((i+1)+'번째에서 멈췄어요: '+e.message); }); })(); };});
-    [].forEach.call(document.querySelectorAll('[data-cards]'),function(b){b.onclick=function(){ b.disabled=true; b.textContent='그리는 중…'; makeCards(b.dataset.cards.split(',').filter(Boolean)); };});
-    [].forEach.call(document.querySelectorAll('[data-art]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.art})[0]; var v=window.prompt('표지에 깔 이미지 주소를 넣어 주세요. 두 개면 쉼표로 나눕니다(둘째는 마지막 장).\n비우면 매장 사진을 씁니다.',c?c.art:''); if(v===null) return; var id=b.dataset.art; call({action:'admin_content',id:id,what:'edit',ch:'소재 이미지',value:v.trim()},b).then(function(){ makeCards([id]); }); };});
+    [].forEach.call(document.querySelectorAll('[data-make]'),function(b){ if(BUSY.make){ b.disabled=true; b.textContent='만드는 중…'; }
+      b.onclick=function(){ var rows=b.dataset.make.split(',').filter(Boolean); if(!rows.length||!window.confirm(rows.length+'건의 채널별 글을 만들까요? 한 건에 2분쯤 걸리고 작성 비용이 듭니다. 다른 메뉴를 봐도 되지만 이 창은 닫지 마세요.')) return; b.disabled=true; b.textContent='만드는 중…'; makeTexts(rows); };});
+    [].forEach.call(document.querySelectorAll('[data-blog]'),function(b){b.onclick=function(){ b.dataset.job='블로그 글 쓰기'; call({action:'admin_make_blog',id:b.dataset.blog},b); };});
+    [].forEach.call(document.querySelectorAll('[data-cards]'),function(b){ if(BUSY.cards){ b.disabled=true; b.textContent='그리는 중…'; } });
     [].forEach.call(document.querySelectorAll('[data-wdo]'),function(b){b.onclick=function(){ call({action:'admin_content',id:b.dataset.id,what:b.dataset.wdo},b); };});
     [].forEach.call(document.querySelectorAll('[data-wedit]'),function(b){b.onclick=function(){ editW=b.dataset.wedit||null; if(editW) openW=editW.split('|')[0]; render(); };});
     [].forEach.call(document.querySelectorAll('[data-wsave]'),function(b){b.onclick=function(){ var k=b.dataset.wsave.split('|'), v=$('wT').value; editW=null; call({action:'admin_content',id:k[0],what:'edit',ch:k[1],value:v},b); };});
