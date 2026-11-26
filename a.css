@@ -229,3 +229,5 @@ details.more>summary::-webkit-details-marker{display:none}
 .tb{width:100%;border-collapse:collapse;font-size:14px}
 .tb th{text-align:left;font-weight:600;color:var(--s);font-size:12px;padding:8px 6px;border-bottom:1px solid var(--bg)}
 .tb td{padding:9px 6px;border-bottom:1px solid var(--bg)}
+
+.msg.banner.good{background:var(--okbg);color:var(--ok)}
