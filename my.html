@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>로컬피드 시작하기</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1126j">
+<link rel="stylesheet" href="a.css?v=1126k">
 </head>
 <body>
 <div class="phone">
@@ -254,6 +254,12 @@
     if(rest.length) html+='<details class="card fold"'+(fixW&&rest.some(function(c){return c.id===fixW})?' open':'')+'><summary><span><b>확인한 글 '+rest.length+'건</b><small>정해진 날에 올라가요</small></span><em>보기</em></summary>'+rest.map(function(c){return workItem(c,false);}).join('')+'</details>';
     return html;
   }
+  // 채널 프로필 문구: 로컬피드가 써서 보낸 것을 복사해 각 채널 프로필에 붙인다
+  var PKS=[['인스타 이름','인스타그램 앱 → 내 프로필 → 프로필 편집 → 이름'],['인스타 소개','인스타그램 앱 → 내 프로필 → 프로필 편집 → 소개'],['스레드 소개','스레드 앱 → 내 프로필 → 프로필 편집 → 소개'],['틱톡 이름','틱톡 앱 → 프로필 → 프로필 편집 → 이름'],['틱톡 소개','틱톡 앱 → 프로필 → 프로필 편집 → 소개'],['당근 소개','당근 → 나의 당근 → 비즈프로필 관리 → 프로필 수정'],['블로그 소개','네이버 블로그 → 관리 → 기본 설정 → 블로그 정보 → 소개글']];
+  function profileCard(){ var P=S.profile; if(!P||!P['인스타 소개']) return '';
+    return '<details class="card fold"><summary><span><b>채널 프로필 문구</b><small>복사해서 각 채널 프로필에 붙여 주세요 · 한 번만 하면 돼요</small></span><em>보기</em></summary>'+
+      PKS.map(function(x){ var v=P[x[0]]; return v?'<div class="wt"><div class="wh"><b>'+x[0]+'</b><button class="link" data-copyp="'+esc(x[0])+'">복사</button></div><p>'+esc(v)+'</p><small style="display:block;color:var(--s);font-size:12px">붙이는 곳: '+x[1]+'</small></div>':''; }).join('')+'</details>';
+  }
   function md(d){var p=String(d||'').split('-');return p.length===3?(+p[1])+'월 '+(+p[2])+'일':'';}
   function planCard(){
     var p=S.plan; if(!p) return ''; if(p.status==='시작 전') return '<div class="card plan"><span class="chip soft">신청 접수됨</span><span>로컬피드가 확인하면 무료 체험 3주가 시작돼요. 아래는 먼저 해 두셔도 돼요</span></div>';
@@ -275,7 +281,7 @@
       else {h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';} }
     else{h1.innerHTML='대표님, 처음 한 번만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
     var allDone=done===total&&cur===null&&!forced;
-    var html=planCard()+loginCard()+worksCard()+plansCard()+(allDone?'':svc(done,total))+(allDone?'':'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'아래 줄을 누르면 순서를 바꿔 할 수 있어요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>');
+    var html=planCard()+loginCard()+worksCard()+plansCard()+profileCard()+(allDone?'':svc(done,total))+(allDone?'':'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'아래 줄을 누르면 순서를 바꿔 할 수 있어요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>');
     function rows(list){return '<div class="card tight">'+list.map(function(x){
       var chip=x.s.later?'<span class="chip warn">나중에</span>':x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
       var name=x.s.id==='ig'&&S.igName?S.igName:x.s.id==='th'&&S.thName?S.thName:x.s.id==='tt'&&S.ttName?S.ttName:x.s.d;
@@ -322,6 +328,7 @@
     [].forEach.call(document.querySelectorAll('[data-wfixgo]'),function(b){b.onclick=function(){workCall(b,b.dataset.wfixgo,'0',document.getElementById('fixWT').value,document.getElementById('fixWM'));};});
     [].forEach.call(document.querySelectorAll('[data-copyw]'),function(b){b.onclick=function(ev){ ev.preventDefault(); var c=(S.works||[]).filter(function(x){return x.id===b.dataset.copyw})[0]; if(!c) return; var t=c.text['블로그 글']; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='복사했어요';},function(){window.prompt('아래 글을 복사해 주세요',t);}); };});
     var wk=document.getElementById('wkB'); if(wk) wk.onclick=function(){ var M=document.getElementById('wkM'); wk.disabled=true; lfApi({action:'owner_save',store:store,key:key,field:'weeknote',value:document.getElementById('wkN').value}).then(function(r){ if(!r.ok) throw new Error(r.error); S=norm(r); render(); var m2=document.getElementById('wkM'); if(m2){ m2.style.color='var(--ok)'; m2.textContent='저장했어요. 이번 주 글에 넣을게요.'; } }).catch(function(e){ M.textContent=e.message; wk.disabled=false; }); };
+    [].forEach.call(document.querySelectorAll('[data-copyp]'),function(b){b.onclick=function(ev){ ev.preventDefault(); var t=(S.profile||{})[b.dataset.copyp]||''; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent='복사했어요';},function(){window.prompt('아래 글을 복사해 주세요',t);}); };});
     function planCall(b,row,ok,memo,M){ b.disabled=true; lfApi({action:'owner_plan',store:store,key:key,row:row,ok:ok,memo:memo}).then(function(r){ if(!r.ok) throw new Error(r.error); fixRow=null; S=norm(r); render(); }).catch(function(e){ b.disabled=false; if(M) M.textContent=e.message; else window.alert(e.message); }); }
     [].forEach.call(document.querySelectorAll('[data-pok]'),function(b){b.onclick=function(){planCall(b,b.dataset.pok,'1','');};});
     [].forEach.call(document.querySelectorAll('[data-pfix]'),function(b){b.onclick=function(){fixRow=+b.dataset.pfix;render();var t=document.getElementById('fixT'); if(t) t.focus();};});

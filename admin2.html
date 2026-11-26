@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1126j">
+<link rel="stylesheet" href="a.css?v=1126k">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1126j"></script>
+<script src="cards.js?v=1126k"></script>
 <script>
 (function(){
   var K=null;
@@ -78,7 +78,7 @@
       .catch(function(e){ say(e.message); b.disabled=false; b.textContent='로그인'; }); };
   }
   function ico(p){return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';}
-  var NAV=[['dash','대시보드','<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'],['stores','매장','<path d="M4 10v10h16V10M3 10l2-6h14l2 6a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/>'],['refs','레퍼런스 조사','<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'],['contents','기획 · 콘텐츠','<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'],['pubs','발행 기록','<path d="M4 12l16-8-6 16-3-6z"/>'],['set','연결 · 설정','<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>']];
+  var NAV=[['dash','대시보드','<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'],['stores','매장','<path d="M4 10v10h16V10M3 10l2-6h14l2 6a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/>'],['week','이번 주 일정','<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'],['pubs','발행 기록','<path d="M4 12l16-8-6 16-3-6z"/>'],['set','연결 · 설정','<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>']];
   var KEYS=['place','intro','photos','voice','blog','daangn','igbiz','ig','th','tt'];
   var KNAME={place:'매장 정보',intro:'가게 소개',photos:'사진·얼굴',voice:'목소리',blog:'블로그 주소',daangn:'당근',igbiz:'인스타 비즈니스 전환',ig:'인스타 연결',th:'스레드 연결',tt:'틱톡 연결'};
   function ok(v){return v==='done'||v==='later'||v==='skip';}
@@ -105,9 +105,20 @@
     var c=D.contents.filter(function(x){return x.store===s.code}).length; if(!c) return ['기획 만들 차례','warn'];
     return ['콘텐츠 '+c+'개','ok'];
   }
-  var FIL='', OPENG={}, SEL={}, Q='', ONLY=false, STAB='todo';
+  var FIL='', OPENG={}, SEL={}, Q='', ONLY=false, STAB='todo', REFS={}, editP=null;
+  var PK=[['인스타 이름',30,'인스타 → 프로필 편집 → 이름'],['인스타 소개',150,'인스타 → 프로필 편집 → 소개'],['스레드 소개',150,'스레드 → 프로필 편집 → 소개'],['틱톡 이름',30,'틱톡 → 프로필 편집 → 이름'],['틱톡 소개',80,'틱톡 → 프로필 편집 → 소개'],['당근 소개',200,'당근 비즈프로필 → 프로필 수정 → 소개'],['블로그 소개',200,'네이버 블로그 → 관리 → 블로그 정보 → 소개글']];
+  // 이번 주 일정: 날짜별로 어느 매장의 무엇이 올라가는지
+  function refsHtml(s){ var R=REFS[s.code];
+    if(!R) return '<div class="box"><h2>레퍼런스</h2><p class="empty">불러오는 중…</p></div>';
+    var head='<div class="hd" style="margin:0 0 8px"><div><h2 style="margin:0">'+esc(R.industry||'')+' 업종에서 모은 글 '+R.refs.length+'건</h2><small>반응이 평소보다 컸던 순서예요. 기획은 이 글들의 제목 구조만 참고해요. '+esc(s.research||'')+'</small></div><div class="acts">'+(s.steps.intro==='done'&&!s.refRunning?'<button class="btn sm gray" data-done="research" data-store="'+esc(s.code)+'">'+(s.research?'다시 조사':'조사 시작')+'</button>':'')+'</div></div>';
+    return '<div class="box">'+head+(R.refs.length?'<table class="tbl"><thead><tr><th>채널</th><th>첫 문구</th><th>반응</th><th></th></tr></thead><tbody>'+R.refs.map(function(r){return '<tr><td style="white-space:nowrap"><b>'+esc(r.ch)+'</b><small>'+esc(r.form)+'</small></td><td>'+esc(r.hook)+(r.sum?'<small>'+esc(r.sum)+'</small>':'')+'</td><td style="white-space:nowrap">'+(r.x?'<span class="chip '+(+r.x>=5?'ok':'')+'">평소의 '+esc(r.x)+'배</span>':'')+(r.views?'<small>조회 '+esc(Number(r.views).toLocaleString())+'</small>':'')+'</td><td>'+(/^https:\/\//.test(r.url)?'<a class="link" target="_blank" rel="noopener noreferrer" href="'+esc(r.url)+'">열기</a>':'')+'</td></tr>';}).join('')+'</tbody></table>':'<p class="empty">아직 모은 글이 없습니다. 조사 시작을 눌러 주세요.</p>')+'</div>'; }
+  function profHtml(s){ var P=s.profile||{}, has=!!P['인스타 소개'];
+    return '<div class="box"><div class="hd" style="margin:0 0 8px"><div><h2 style="margin:0">채널 프로필 문구 '+(s.profileSent?'<span class="chip ok">매장에 보냄</span>':has?'<span class="chip">아직 안 보냄</span>':'')+'</h2><small>매장 대표님이 각 채널 프로필에 그대로 붙여 넣을 문구예요. 글자 수 한도에 맞춰 써요.</small></div><div class="acts"><button class="btn sm '+(has?'gray':'')+'" data-prof="make" data-store="'+esc(s.code)+'">'+(has?'다시 만들기':'프로필 문구 만들기')+'</button>'+(has?(s.profileSent?'<button class="btn sm gray" data-prof="hold" data-store="'+esc(s.code)+'">보낸 것 거두기</button>':'<button class="btn sm" data-prof="send" data-store="'+esc(s.code)+'">매장에 보내기</button>'):'')+'</div></div>'+
+      (has?PK.map(function(x){ var v=P[x[0]]||'', over=v.length>x[1], k=s.code+'|'+x[0];
+        return '<div class="wt"><div class="wh"><b>'+x[0]+' <span class="chip '+(over?'bad':'')+'" style="margin-left:6px">'+v.length+' / '+x[1]+'자</span></b><span><button class="link" data-pedit="'+esc(k)+'">고치기</button></span></div>'+(editP===k?'<textarea class="in" id="pT" style="min-height:110px">'+esc(v)+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-psave="'+esc(k)+'">저장</button><button class="btn sm gray" data-pedit="">취소</button></div>':'<p>'+esc(v||'(없음)')+'</p>')+'<small>붙이는 곳: '+x[2]+'</small></div>'; }).join(''):'<p class="empty">가게 소개가 있으면 버튼 한 번으로 만들 수 있어요.</p>')+'</div>'; }
+
   function F(list){ return FIL?list.filter(function(x){return x.store===FIL;}):list; }
-  var GROUPS=[['pubfail','게시 실패','다시 올리기'],['new','가입 신청 받기',''],['tester','테스터 등록',''],['daangn','당근 초대 수락',''],['research','조사 시작','모두 시작'],['plan_make','기획 만들기','모두 만들기'],['plan_send','기획 읽고 매장에 보내기','읽지 않고 모두 보내기'],['planfix','기획 수정 요청',''],['produce','글 만들기','모두 만들기'],['cards','카드 만들기','모두 그리기'],['work_send','완성본 읽고 매장에 보내기',''],['workfix','완성본 수정 요청',''],['plan_wait','기획 확인 기다림','안내 문구 모두 복사'],['work_wait','완성본 확인 기다림','안내 문구 모두 복사'],['trial','체험 종료 임박',''],['pay','결제 확인','']];
+  var GROUPS=[['pubfail','게시 실패','다시 올리기'],['new','가입 신청 받기',''],['tester','테스터 등록',''],['daangn','당근 초대 수락',''],['research','조사 시작','모두 시작'],['profile','프로필 문구 만들기','모두 만들기'],['profile_send','프로필 문구 읽고 보내기',''],['plan_make','기획 만들기','모두 만들기'],['plan_send','기획 읽고 매장에 보내기','읽지 않고 모두 보내기'],['planfix','기획 수정 요청',''],['produce','글 만들기','모두 만들기'],['cards','카드 만들기','모두 그리기'],['work_send','완성본 읽고 매장에 보내기',''],['workfix','완성본 수정 요청',''],['plan_wait','기획 확인 기다림','안내 문구 모두 복사'],['work_wait','완성본 확인 기다림','안내 문구 모두 복사'],['trial','체험 종료 임박',''],['pay','결제 확인','']];
   function groupsHtml(){
     var T=F(D.todos); if(!T.length) return '<p class="empty">지금 할 일이 없습니다.</p>';
     var few=T.length<=4;
@@ -124,9 +135,11 @@
   }
   function todoHtml(list){ list=list||D.todos; var inStore=tab==='store';
     return list.length?list.map(function(t){
-      var go=/^plan/.test(t.kind)?'plan':/^(work|cards|produce|pubfail)/.test(t.kind)?'work':'';
-      var open=inStore?(go?' <button class="btn sm gray" data-stab="'+go+'">'+(go==='plan'?'기획 열기':'완성본 열기')+'</button>':''):' <button class="btn sm gray" data-open="'+esc(t.store)+'"'+(go?' data-go="'+go+'"':'')+'>매장 보기</button>';
+      var go=/^profile/.test(t.kind)?'prof':/^plan/.test(t.kind)?'plan':/^(work|cards|produce|pubfail)/.test(t.kind)?'work':'';
+      var open=inStore?(go?' <button class="btn sm gray" data-stab="'+go+'">'+(go==='plan'?'기획 열기':go==='prof'?'프로필 열기':'완성본 열기')+'</button>':''):' <button class="btn sm gray" data-open="'+esc(t.store)+'"'+(go?' data-go="'+go+'"':'')+'>매장 보기</button>';
       if(t.kind==='tester') return '<div class="alert">'+logo('instagram.png')+'<div class="g"><b>'+esc(t.name)+' · 인스타 비즈니스 전환 완료 → 테스터 등록</b><small>아이디 '+esc(t.igId)+' · '+esc(t.at)+'에 대표님이 눌렀어요 · Instagram 테스터와 Threads 테스터 둘 다 추가</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc(t.igId)+'">아이디 복사</button><a class="btn sm gray" target="_blank" rel="noopener" href="'+esc(D.roles)+'">Meta 역할 페이지 열기</a><button class="btn sm" data-done="tester" data-store="'+esc(t.store)+'">등록했어요</button></div></div>';
+      if(t.kind==='profile') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">프로필</div><div class="g"><b>'+esc(t.name)+' · 채널 프로필 문구를 만들 차례예요</b><small>인스타·스레드·틱톡·당근·블로그 소개를 글자 수에 맞춰 써요 · 30초쯤</small></div><div class="acts">'+(inStore?'':open)+'<button class="btn sm" data-prof="make" data-store="'+esc(t.store)+'">만들기</button></div></div>';
+      if(t.kind==='profile_send') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">프로필</div><div class="g"><b>'+esc(t.name)+' · 프로필 문구를 읽고 매장에 보내세요</b><small>글자 수와 사실을 확인한 뒤 보내요</small></div><div class="acts"><button class="btn sm" data-open="'+esc(t.store)+'" data-go="prof">프로필 읽기</button></div></div>';
       if(t.kind==='new') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">신규</div><div class="g"><b>'+esc(t.name)+' · 가입 신청이 들어왔어요</b><small>'+esc([t.keys,t.phone,t.at].filter(Boolean).join(' · '))+' · 받기로 하면 "체험 시작"을 누르세요</small></div><div class="acts">'+open+'<button class="btn sm" data-done="trial_start" data-store="'+esc(t.store)+'">체험 시작</button></div></div>';
       if(t.kind==='plan_make') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">기획</div><div class="g"><b>'+esc(t.name)+' · '+md(t.week).replace('-','월 ')+'일 주'+' 기획을 만들 차례예요</b><small>'+(D.aiReady?'조사한 글과 가게 소개로 카드뉴스 5건과 쇼츠 1건을 잡아요 · 1분쯤 걸려요':'자동 작성 열쇠가 아직 없어요 · 연결·설정에서 넣는 방법을 확인하세요')+'</small></div><div class="acts">'+open+'<button class="btn sm" data-planmake="'+esc(t.store)+'" data-week="'+esc(t.week)+'">기획 만들기</button></div></div>';
       if(t.kind==='plan_send') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">읽기</div><div class="g"><b>'+esc(t.name)+' · 기획 '+t.n+'건을 읽고 매장에 보내세요</b><small>'+md(t.week).replace('-','월 ')+'일 주'+' · 고칠 곳이 있으면 고친 뒤 보내요</small></div><div class="acts"><button class="btn sm" data-open="'+esc(t.store)+'" data-go="plan">기획 읽기</button></div></div>';
@@ -145,6 +158,14 @@
   }
   function stat(l,v,s2){return '<div class="stat"><small>'+l+'</small><b>'+v+'</b><span>'+s2+'</span></div>';}
   var V={};
+  V.week=function(){ var W=F(D.works).slice().sort(function(x,y){return x.date<y.date?-1:x.date>y.date?1:0;}), days={}, order=[];
+    W.forEach(function(c){ if(!days[c.date]){days[c.date]=[];order.push(c.date);} days[c.date].push(c); });
+    var wd=['일','월','화','수','목','금','토'], today=new Date(), ty=today.getFullYear()+'-'+('0'+(today.getMonth()+1)).slice(-2)+'-'+('0'+today.getDate()).slice(-2);
+    return '<div class="hd"><div><h1>이번 주 일정</h1><small>날짜별로 어느 매장의 무엇이 올라가는지 봐요. 눌러서 그 매장의 완성본으로 가요.</small></div></div>'+
+      (order.length?order.map(function(d){ var p=d.split('-'), dt=new Date(+p[0],+p[1]-1,+p[2]);
+        return '<div class="box"><h2>'+(+p[1])+'월 '+(+p[2])+'일 '+wd[dt.getDay()]+'요일'+(d===ty?' <span class="chip soft">오늘</span>':d<ty?' <span class="chip">지남</span>':'')+'</h2>'+days[d].map(function(c){ var st=D.stores.filter(function(x){return x.code===c.store})[0];
+          return '<div class="alert"><div class="g"><b>'+esc(st?st.name:c.store)+' · '+esc(c.title)+'</b><small>'+esc(c.form)+(c.media.length?' · 카드 '+c.media.length+'장':/^쇼츠/.test(c.form)?'':' · 카드 없음')+'</small></div><div class="acts">'+wchip(c)+'<button class="btn sm gray" data-open="'+esc(c.store)+'" data-go="work">열기</button></div></div>'; }).join('')+'</div>'; }).join(''):'<div class="box"><p class="empty">아직 만든 완성본이 없습니다.</p></div>');
+  };
   V.dash=function(){
     var d=new Date(), S=D.stores, trial=S.filter(function(s){return s.plan.status==='무료 체험'}).length, paid=S.filter(function(s){return s.plan.status==='유료'}).length;
     var okP=D.publishes.filter(function(p){return p.status==='게시됨'}).length, bad=D.publishes.filter(function(p){return p.status==='실패'}).length;
@@ -197,9 +218,10 @@
     var act=T.filter(function(t){return !/_wait$/.test(t.kind)}), wait=T.filter(function(t){return /_wait$/.test(t.kind)});
     var steps=[['설정','<span class="chip '+(n===KEYS.length?'ok':'soft')+'">'+n+' / '+KEYS.length+'</span>'],['조사',research(s)],['기획',info.plan],['글·카드',info.make],['확인',info.check],['게시',info.pub]];
     var stepper='<div class="stepper">'+steps.map(function(x,k){return '<div><small>'+(k+1)+'. '+x[0]+'</small>'+x[1]+'</div>';}).join('')+'</div>';
-    var tabs=[['todo','할 일',act.length],['plan','기획',P.length],['work','완성본',Wk.length],['pub','발행 기록',ps.length],['set','설정·가게 정보','']];
+    var tabs=[['todo','할 일',act.length],['plan','기획',P.length],['work','완성본',Wk.length],['pub','발행 기록',ps.length],['ref','레퍼런스',s.refs||''],['prof','프로필 문구',''],['set','설정·가게 정보','']];
     var tabbar='<div class="stabs">'+tabs.map(function(t){return '<button data-stab="'+t[0]+'" class="'+(STAB===t[0]?'on':'')+'">'+t[1]+(t[2]!==''?' <i'+(t[0]==='todo'&&t[2]?' class="hot"':'')+'>'+t[2]+'</i>':'')+'</button>';}).join('')+'</div>';
-    var body=STAB==='plan'?pgroups(P,false):STAB==='work'?wlist(Wk,false):STAB==='pub'?pubs:STAB==='set'?setup:
+    if(STAB==='ref'&&!REFS[s.code]){ REFS[s.code]=null; _api({action:'admin_refs',k:K,store:s.code}).then(function(r){ REFS[s.code]=r.ok?r:{industry:s.industry,refs:[]}; if(tab==='store'&&cur===s.code&&STAB==='ref') render(); }); }
+    var body=STAB==='ref'?refsHtml(s):STAB==='prof'?profHtml(s):STAB==='plan'?pgroups(P,false):STAB==='work'?wlist(Wk,false):STAB==='pub'?pubs:STAB==='set'?setup:
       '<div class="box"><h2>'+(act.length?'지금 이 매장에서 할 일 '+act.length+'건':'지금 할 일이 없어요')+'</h2>'+(act.length?todoHtml(act):'<p class="empty" style="text-align:left">'+(wait.length?'매장 대표님의 답을 기다리는 중이에요.':'다음 차례가 오면 여기에 떠요.')+'</p>')+'</div>'+
       (wait.length?'<div class="box"><h2>기다리는 것 '+wait.length+'건</h2>'+todoHtml(wait)+'</div>':'');
     return head+stepper+tabbar+body;
@@ -245,6 +267,9 @@
     $('nav').innerHTML=NAV.map(function(n){var on=tab===n[0]||(tab==='store'&&n[0]==='stores');return '<button data-tab="'+n[0]+'" class="'+(on?'on':'')+'">'+ico(n[2])+n[1]+(n[0]==='dash'&&D.todos.length?'<i>'+D.todos.length+'</i>':'')+'</button>';}).join('');
     $('view').innerHTML=V[tab]();
     [].forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.onclick=function(){tab=b.dataset.tab;say('');render();window.scrollTo(0,0);};});
+    [].forEach.call(document.querySelectorAll('[data-prof]'),function(b){b.onclick=function(){ var w=b.dataset.prof; if(w==='make'&&!window.confirm('채널 프로필 문구를 만들까요? 이미 있으면 새로 씁니다. 작성 비용이 조금 듭니다.')) return; b.dataset.job='프로필 문구'; call({action:'admin_profile',store:b.dataset.store,what:w},b); };});
+    [].forEach.call(document.querySelectorAll('[data-pedit]'),function(b){b.onclick=function(){ editP=b.dataset.pedit||null; render(); };});
+    [].forEach.call(document.querySelectorAll('[data-psave]'),function(b){b.onclick=function(){ var k=b.dataset.psave.split('|'), v=$('pT').value; editP=null; call({action:'admin_profile',store:k[0],what:'edit',key:k[1],value:v},b); };});
     [].forEach.call(document.querySelectorAll('[data-stab]'),function(b){b.onclick=function(){STAB=b.dataset.stab;render();};});
     [].forEach.call(document.querySelectorAll('[data-open]'),function(b){b.onclick=function(){ if(cur!==b.dataset.open||tab!=='store') STAB='todo'; if(b.dataset.go) STAB=b.dataset.go; cur=b.dataset.open;tab='store';say('');render();window.scrollTo(0,0);};});
     [].forEach.call(document.querySelectorAll('[data-copy]'),function(b){b.onclick=function(){copy(b.dataset.copy,b);};});
@@ -277,12 +302,12 @@
     var qq=$('q'); if(qq) qq.oninput=function(){ Q=qq.value; clearTimeout(qq._t); qq._t=setTimeout(function(){ render(); var n=$('q'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } },250); };
     var on=$('only'); if(on) on.onchange=function(){ONLY=on.checked;render();};
     [].forEach.call(document.querySelectorAll('[data-bulk]'),function(b){ if(BUSY.bulk){ b.disabled=true; } b.onclick=function(){ var kind=b.dataset.bulk, L=F(D.todos).filter(function(t){return t.kind===kind&&(!b.dataset.sel||SEL[t.store]);}); if(!L.length) return;
-        var label={research:'조사 시작',plan_make:'기획 만들기',plan_send:'기획 보내기'}[kind];
+        var label={research:'조사 시작',plan_make:'기획 만들기',plan_send:'기획 보내기',profile:'프로필 문구 만들기'}[kind];
         if(!window.confirm(L.length+'곳에 "'+label+'"를 차례로 실행할까요?'+(kind==='plan_make'?'\n한 곳에 1분쯤 걸리고 작성 비용이 듭니다. 이 창은 닫지 마세요.':kind==='plan_send'?'\n읽지 않은 기획이 매장 대표님 화면에 바로 뜹니다.':''))) return;
         BUSY.bulk=true; b.disabled=true; var i=0, fail=[], J=job(label+' 시작');
         (function next(){ if(i>=L.length){ BUSY.bulk=false; J.end(); render(); say(fail.length?label+': '+(L.length-fail.length)+'곳 완료, '+fail.length+'곳 실패 ('+fail.join(' / ')+')':label+' '+L.length+'곳 완료',!fail.length); return; }
           var t=L[i]; J.set(label+' '+(i+1)+'/'+L.length+' · '+t.name);
-          var body=kind==='research'?{action:'admin_done',what:'research',store:t.store}:kind==='plan_make'?{action:'admin_plan_make',store:t.store,week:t.week||''}:{action:'admin_plan_week',store:t.store,week:t.week};
+          var body=kind==='profile'?{action:'admin_profile',what:'make',store:t.store}:kind==='research'?{action:'admin_done',what:'research',store:t.store}:kind==='plan_make'?{action:'admin_plan_make',store:t.store,week:t.week||''}:{action:'admin_plan_week',store:t.store,week:t.week};
           body.k=K; _api(body).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); }).catch(function(e){ fail.push(t.name+': '+e.message); }).then(function(){ i++; render(); next(); }); })(); };});
     [].forEach.call(document.querySelectorAll('[data-pubnow]'),function(b){b.onclick=function(){ if(!window.confirm('인스타와 스레드에 지금 올릴까요? 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job='지금 올리기'; call({action:'admin_publish',id:b.dataset.pubnow},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패|없습니다/.test(D.notice)); }); b.textContent='올리는 중… 1분쯤'; };});
     [].forEach.call(document.querySelectorAll('[data-art]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.art})[0]; var v=window.prompt('표지에 깔 이미지 주소를 넣어 주세요. 두 개면 쉼표로 나눕니다(둘째는 마지막 장).\n비우면 매장 사진을 씁니다.',c?c.art:''); if(v===null) return; var id=b.dataset.art; b.dataset.job='소재 이미지 저장'; call({action:'admin_content',id:id,what:'edit',ch:'소재 이미지',value:v.trim()},b).then(function(){ makeCards([id]); }); };});
@@ -293,7 +318,7 @@
     [].forEach.call(document.querySelectorAll('[data-planweek]'),function(b){b.onclick=function(){ if(window.confirm('이 주 기획을 매장 대표님 화면에 보낼까요?')) call({action:'admin_plan_week',store:b.dataset.store,week:b.dataset.planweek},b); };});
     var add=$('add'); if(add) add.onclick=function(){ call({action:'admin_add',name:$('nName').value,dong:$('nDong').value,industry:$('nInd').value},add); };
   }
-  function norm(r){ r.industries=r.industries||[]; r.plans=r.plans||[]; r.works=r.works||[]; r.contents=r.contents||[]; r.publishes=r.publishes||[]; r.sheet=r.sheet||'#'; r.stores.forEach(function(s){s.plan=s.plan||{status:'시작 전'};s.files=s.files||{store:0,face:0,voice:0};s.steps.intro=s.steps.intro||'todo';s.steps.voice=s.steps.voice||'todo';}); return r; }
+  function norm(r){ r.industries=r.industries||[]; r.plans=r.plans||[]; r.works=r.works||[]; (r.stores||[]).forEach(function(s){ s.profile=s.profile||{}; }); r.contents=r.contents||[]; r.publishes=r.publishes||[]; r.sheet=r.sheet||'#'; r.stores.forEach(function(s){s.plan=s.plan||{status:'시작 전'};s.files=s.files||{store:0,face:0,voice:0};s.steps.intro=s.steps.intro||'todo';s.steps.voice=s.steps.voice||'todo';}); return r; }
   var _api=window.lfApi; window.lfApi=function(b){return _api(b).then(function(r){return r&&r.ok&&r.stores?norm(r):r;});};
   var lo=document.createElement('button'); lo.className='btn sm gray'; lo.textContent='로그아웃'; lo.style.marginTop='8px'; lo.onclick=function(){logout(false);}; document.querySelector('.side').appendChild(lo);
   $('reload').onclick=function(){call({action:'admin_state'},$('reload'));};
