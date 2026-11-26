@@ -191,3 +191,13 @@ label.btn{cursor:pointer}
 .pl ol li{margin-bottom:3px}
 .pl small{display:block;font-size:12px;color:var(--s);line-height:1.5;margin-top:4px}
 .pl small a{color:var(--b)}
+
+/* 완성본 확인 */
+.wm{display:flex;gap:8px;overflow-x:auto;margin:10px 0 6px;padding-bottom:4px}
+.wm img,.wm video{height:190px;border-radius:12px;flex:none;background:var(--bg)}
+.wt{border-top:1px solid var(--bg);padding:10px 0 2px;margin-top:8px}
+.wh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--b);list-style:none;cursor:pointer}
+.wh::-webkit-details-marker{display:none}
+.wh span{color:var(--s);font-size:12px;font-weight:400}
+.wt p{white-space:pre-wrap;font-size:14px;line-height:1.65;color:#333D4B;margin:6px 0 4px;word-break:break-word}
+button.link{background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--b);cursor:pointer;text-decoration:underline}
