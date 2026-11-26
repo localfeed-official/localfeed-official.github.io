@@ -6,7 +6,7 @@
 <title>로컬피드 · 동네 가게 SNS를 대신 올려 드려요</title>
 <meta name="description" content="인스타그램, 스레드, 당근, 틱톡, 네이버 블로그. 대표님은 확인만 하세요. 3주 무료 체험.">
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1126h">
+<link rel="stylesheet" href="a.css?v=1126i">
 </head>
 <body>
 <div class="phone">
@@ -38,6 +38,7 @@
     <div class="card">
       <b style="font-size:17px">3주 동안 무료로 써 보세요</b>
       <small style="display:block;color:var(--s);font-size:14px;line-height:1.6;margin-top:6px">신청을 받으면 로컬피드가 확인하고 체험을 시작해요. 체험은 선착순 5곳이에요. 3주 뒤 계속 쓰실 때만 월 결제로 넘어가고, 그 전에 요금을 먼저 안내해 드려요. 결제 정보는 받지 않아요.</small>
+      <small style="display:block;color:var(--s);font-size:13px;line-height:1.6;margin-top:10px;padding-top:10px;border-top:1px solid var(--bg)"><b style="color:var(--t)">미리 알려 드려요</b><br>무료 체험 동안에는 카드뉴스 맨 끝에 "로컬피드가 만들었어요"라는 표시 한 장이 붙어서 대표님 계정에 함께 올라가요. 유료로 쓰시면 이 장은 빠져요.</small>
     </div>
     <a class="btn" href="#join" id="toJoin">무료 체험 신청하기</a>
   </div>
@@ -54,7 +55,7 @@
         </div>
         <label class="fld"><span>대표님 휴대폰 번호</span><input class="in" id="phone" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000"></label>
         <label class="fld"><span id="pl">비밀번호 정하기 (숫자 4~6자리)</span><input class="in" id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="숫자만"></label>
-        <label id="ag" style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#4E5968;line-height:1.55;margin:4px 0 14px;cursor:pointer"><input type="checkbox" id="agree" style="width:20px;height:20px;flex:none;margin-top:1px"><span><b>개인정보 수집·이용에 동의해요</b><br>항목: 가게 이름, 업종, 동네, 휴대폰 번호 · 목적: 서비스 제공과 안내 연락 · 보관: 이용을 끝내면 지워요 · 동의하지 않으면 신청할 수 없어요 · <a href="privacy.html" target="_blank">자세히</a></span></label>
+        <label id="ag" style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#4E5968;line-height:1.55;margin:4px 0 14px;cursor:pointer"><input type="checkbox" id="agree" style="width:20px;height:20px;flex:none;margin-top:1px"><span><b>개인정보 수집·이용과 아래 안내에 동의해요</b><br>무료 체험 동안 카드뉴스 끝에 로컬피드 표시 한 장이 붙어요(유료에서는 빠져요).<br><b>개인정보</b><br>항목: 가게 이름, 업종, 동네, 휴대폰 번호 · 목적: 서비스 제공과 안내 연락 · 보관: 이용을 끝내면 지워요 · 동의하지 않으면 신청할 수 없어요 · <a href="privacy.html" target="_blank">자세히</a></span></label>
         <p class="msg" id="msg"></p>
         <button class="btn" id="go">신청하고 시작하기</button>
       </form>
@@ -93,7 +94,7 @@
     var body=mode==='join'?{action:'owner_signup',name:$('name').value,industry:$('ind').value,dong:$('dong').value,phone:$('phone').value,pin:$('pin').value,agree:$('agree').checked?'1':''}:{action:'owner_login',phone:$('phone').value,pin:$('pin').value};
     if(mode==='join'&&!$('name').value.trim()){M.textContent='가게 이름을 적어 주세요.';return;}
     if(!/^\d{4,6}$/.test($('pin').value)){M.textContent='비밀번호는 숫자 4~6자리예요.';return;}
-    if(mode==='join'&&!$('agree').checked){M.textContent='개인정보 수집·이용에 동의해 주세요.';return;}
+    if(mode==='join'&&!$('agree').checked){M.textContent='안내를 읽고 동의에 체크해 주세요.';return;}
     b.disabled=true; b.textContent='확인 중…';
     lfApi(body).then(function(r){ if(!r.ok) throw new Error(r.error); try{LS.setItem('lf_store',r.store);LS.setItem('lf_key',r.key);}catch(e){ location.replace('my.html?store='+encodeURIComponent(r.store)+'&key='+encodeURIComponent(r.key)); return; } location.replace('my.html'); })
       .catch(function(e){ M.textContent=e.message||'잠시 뒤 다시 해 주세요.'; b.disabled=false; b.textContent=t; });

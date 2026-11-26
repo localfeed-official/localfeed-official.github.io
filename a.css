@@ -231,3 +231,15 @@ details.more>summary::-webkit-details-marker{display:none}
 .tb td{padding:9px 6px;border-bottom:1px solid var(--bg)}
 
 .msg.banner.good{background:var(--okbg);color:var(--ok)}
+
+/* 운영 화면 새 구조 */
+#topbar{display:flex;align-items:center;gap:12px;margin:0 0 14px;font-size:13px;color:var(--s)}
+#topbar select{font:inherit;font-size:14px;font-weight:600;color:var(--t);height:40px;border:1px solid var(--line,#E5E8EB);border-radius:12px;padding:0 12px;background:#fff;margin-left:6px}
+.grp{border-top:1px solid var(--bg)}
+.gh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0}
+.gt{display:flex;align-items:center;gap:10px;background:none;border:0;font:inherit;cursor:pointer;padding:0;text-align:left}
+.gt b{font-size:16px}
+.gt em{font-style:normal;font-size:12px;color:var(--s)}
+.gb{padding:0 0 6px 14px;border-left:3px solid var(--soft);margin:0 0 10px 4px}
+.bulkbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--soft);border-radius:14px;padding:10px 14px;margin-bottom:12px}
+.bulkbar b{font-size:14px;color:var(--b);margin-right:6px}
