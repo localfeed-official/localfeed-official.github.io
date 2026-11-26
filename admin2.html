@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1126i">
+<link rel="stylesheet" href="a.css?v=1126j">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1126i"></script>
+<script src="cards.js?v=1126j"></script>
 <script>
 (function(){
   var K=null;
@@ -105,7 +105,7 @@
     var c=D.contents.filter(function(x){return x.store===s.code}).length; if(!c) return ['기획 만들 차례','warn'];
     return ['콘텐츠 '+c+'개','ok'];
   }
-  var FIL='', OPENG={}, SEL={}, Q='', ONLY=false;
+  var FIL='', OPENG={}, SEL={}, Q='', ONLY=false, STAB='todo';
   function F(list){ return FIL?list.filter(function(x){return x.store===FIL;}):list; }
   var GROUPS=[['pubfail','게시 실패','다시 올리기'],['new','가입 신청 받기',''],['tester','테스터 등록',''],['daangn','당근 초대 수락',''],['research','조사 시작','모두 시작'],['plan_make','기획 만들기','모두 만들기'],['plan_send','기획 읽고 매장에 보내기','읽지 않고 모두 보내기'],['planfix','기획 수정 요청',''],['produce','글 만들기','모두 만들기'],['cards','카드 만들기','모두 그리기'],['work_send','완성본 읽고 매장에 보내기',''],['workfix','완성본 수정 요청',''],['plan_wait','기획 확인 기다림','안내 문구 모두 복사'],['work_wait','완성본 확인 기다림','안내 문구 모두 복사'],['trial','체험 종료 임박',''],['pay','결제 확인','']];
   function groupsHtml(){
@@ -122,18 +122,19 @@
       }
       return '<div class="grp"><div class="gh"><button class="gt" data-grp="'+g[0]+'"><b>'+g[1]+'</b><span class="chip '+(/_wait$|trial|pay/.test(g[0])?'warn':/fail|fix/.test(g[0])?'bad':'soft')+'">'+n+'곳'+(L.length>n?' · '+L.length+'건':'')+'</span><em>'+(open?'접기':'펼치기')+'</em></button><div class="acts">'+bulk+'</div></div>'+(open?'<div class="gb">'+todoHtml(L)+'</div>':'')+'</div>'; }).join('');
   }
-  function todoHtml(list){ list=list||D.todos;
+  function todoHtml(list){ list=list||D.todos; var inStore=tab==='store';
     return list.length?list.map(function(t){
-      var open=' <button class="btn sm gray" data-open="'+esc(t.store)+'">매장 보기</button>';
+      var go=/^plan/.test(t.kind)?'plan':/^(work|cards|produce|pubfail)/.test(t.kind)?'work':'';
+      var open=inStore?(go?' <button class="btn sm gray" data-stab="'+go+'">'+(go==='plan'?'기획 열기':'완성본 열기')+'</button>':''):' <button class="btn sm gray" data-open="'+esc(t.store)+'"'+(go?' data-go="'+go+'"':'')+'>매장 보기</button>';
       if(t.kind==='tester') return '<div class="alert">'+logo('instagram.png')+'<div class="g"><b>'+esc(t.name)+' · 인스타 비즈니스 전환 완료 → 테스터 등록</b><small>아이디 '+esc(t.igId)+' · '+esc(t.at)+'에 대표님이 눌렀어요 · Instagram 테스터와 Threads 테스터 둘 다 추가</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc(t.igId)+'">아이디 복사</button><a class="btn sm gray" target="_blank" rel="noopener" href="'+esc(D.roles)+'">Meta 역할 페이지 열기</a><button class="btn sm" data-done="tester" data-store="'+esc(t.store)+'">등록했어요</button></div></div>';
       if(t.kind==='new') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">신규</div><div class="g"><b>'+esc(t.name)+' · 가입 신청이 들어왔어요</b><small>'+esc([t.keys,t.phone,t.at].filter(Boolean).join(' · '))+' · 받기로 하면 "체험 시작"을 누르세요</small></div><div class="acts">'+open+'<button class="btn sm" data-done="trial_start" data-store="'+esc(t.store)+'">체험 시작</button></div></div>';
       if(t.kind==='plan_make') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">기획</div><div class="g"><b>'+esc(t.name)+' · '+md(t.week).replace('-','월 ')+'일 주'+' 기획을 만들 차례예요</b><small>'+(D.aiReady?'조사한 글과 가게 소개로 카드뉴스 5건과 쇼츠 1건을 잡아요 · 1분쯤 걸려요':'자동 작성 열쇠가 아직 없어요 · 연결·설정에서 넣는 방법을 확인하세요')+'</small></div><div class="acts">'+open+'<button class="btn sm" data-planmake="'+esc(t.store)+'" data-week="'+esc(t.week)+'">기획 만들기</button></div></div>';
-      if(t.kind==='plan_send') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">읽기</div><div class="g"><b>'+esc(t.name)+' · 기획 '+t.n+'건을 읽고 매장에 보내세요</b><small>'+md(t.week).replace('-','월 ')+'일 주'+' · 고칠 곳이 있으면 고친 뒤 보내요</small></div><div class="acts"><button class="btn sm" data-open="'+esc(t.store)+'">기획 읽기</button></div></div>';
+      if(t.kind==='plan_send') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">읽기</div><div class="g"><b>'+esc(t.name)+' · 기획 '+t.n+'건을 읽고 매장에 보내세요</b><small>'+md(t.week).replace('-','월 ')+'일 주'+' · 고칠 곳이 있으면 고친 뒤 보내요</small></div><div class="acts"><button class="btn sm" data-open="'+esc(t.store)+'" data-go="plan">기획 읽기</button></div></div>';
       if(t.kind==='plan_wait') return '<div class="alert"><div class="tile" style="background:var(--warnbg);color:var(--warn);font-weight:700;font-size:12px">대기</div><div class="g"><b>'+esc(t.name)+' · 매장 대표님 확인을 기다려요 ('+t.n+'건)</b><small>하루 넘게 답이 없으면 안내 문구를 카톡으로 보내세요</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc('[로컬피드] '+t.name+' 대표님, 다음 주에 올릴 내용이 준비됐어요. 좋아요만 눌러 주시면 바로 만들어요. https://localfeed.co.kr/start.html')+'">안내 문구 복사</button>'+open+'</div></div>';
       if(t.kind==='produce') return '<div class="alert"><div class="tile" style="background:var(--okbg,#E8F5EC);color:var(--ok,#1B7A3E);font-weight:700;font-size:12px">제작</div><div class="g"><b>'+esc(t.name)+' · 좋아요 받은 '+t.n+'건을 만들 차례예요</b><small>'+md(t.week).replace('-','월 ')+'일 주'+' · 채널별 글 5개씩 써요 · 한 건에 1분쯤</small></div><div class="acts">'+open+'<button class="btn sm" data-make="'+esc((t.rows||[]).join(','))+'">글 만들기</button></div></div>';
       if(t.kind==='cards') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">카드</div><div class="g"><b>'+esc(t.name)+' · 카드뉴스 이미지 '+t.n+'건을 만들 차례예요</b><small>기획의 장별 문구로 6장씩 그려요 · 비용 없음 · 한 건에 10초쯤</small></div><div class="acts">'+open+'<button class="btn sm" data-cards="'+esc((t.ids||[]).join(','))+'">카드 만들기</button></div></div>';
       if(t.kind==='pubfail') return '<div class="alert"><div class="tile" style="background:var(--badbg);color:var(--bad);font-weight:700;font-size:12px">실패</div><div class="g"><b>'+esc(t.name)+' · 게시가 실패했어요</b><small>'+esc(t.topic)+' · 발행 기록에서 이유를 보고 다시 올리세요</small></div><div class="acts"><button class="btn sm gray" data-tab="pubs">발행 기록</button><button class="btn sm" data-pubnow="'+esc(t.id)+'">다시 올리기</button></div></div>';
-      if(t.kind==='work_send') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">읽기</div><div class="g"><b>'+esc(t.name)+' · 완성본 '+t.n+'건을 읽고 매장에 보내세요</b><small>글을 읽어 보고 고칠 곳은 고친 뒤 보내요</small></div><div class="acts"><button class="btn sm" data-open="'+esc(t.store)+'">완성본 읽기</button></div></div>';
+      if(t.kind==='work_send') return '<div class="alert"><div class="tile" style="background:var(--soft);color:var(--b);font-weight:700;font-size:12px">읽기</div><div class="g"><b>'+esc(t.name)+' · 완성본 '+t.n+'건을 읽고 매장에 보내세요</b><small>글을 읽어 보고 고칠 곳은 고친 뒤 보내요</small></div><div class="acts"><button class="btn sm" data-open="'+esc(t.store)+'" data-go="work">완성본 읽기</button></div></div>';
       if(t.kind==='work_wait') return '<div class="alert"><div class="tile" style="background:var(--warnbg);color:var(--warn);font-weight:700;font-size:12px">대기</div><div class="g"><b>'+esc(t.name)+' · 완성본 확인을 기다려요 ('+t.n+'건)</b><small>답이 없으면 안내 문구를 카톡으로 보내세요</small></div><div class="acts"><button class="btn sm gray" data-copy="'+esc('[로컬피드] '+t.name+' 대표님, 이번 주에 올라갈 글이 준비됐어요. 보시고 좋아요만 눌러 주세요. https://localfeed.co.kr/start.html')+'">안내 문구 복사</button>'+open+'</div></div>';
       if(t.kind==='workfix') return '<div class="alert"><div class="tile" style="background:var(--warnbg);color:var(--warn);font-weight:700;font-size:12px">수정</div><div class="g"><b>'+esc(t.name)+' · 완성본을 고쳐 달라고 했어요</b><small>'+esc(t.topic)+' → '+esc(t.note)+'</small></div><div class="acts">'+open+'<button class="btn sm" data-wrev="'+esc(t.id)+'" data-ch="" data-auto="1">요청대로 고치기</button></div></div>';
       if(t.kind==='planfix') return '<div class="alert"><div class="tile" style="background:var(--warnbg);color:var(--warn);font-weight:700;font-size:12px">수정</div><div class="g"><b>'+esc(t.name)+' · 기획을 고쳐 달라고 했어요</b><small>'+esc(t.topic)+' → '+esc(t.note)+'</small></div><div class="acts">'+open+'<button class="btn sm" data-planrev="'+t.row+'" data-auto="1">요청대로 고치기</button></div></div>';
@@ -186,13 +187,22 @@
     var note={place:s.online?'온라인 매장':'',intro:[I.dong,I.industry].filter(Boolean).join(' · '),photos:'매장 '+f.store+'장 · 얼굴 '+f.face+'장'+(T.photos?' · 동의 '+T.photos:''),voice:st.voice==='skip'?'자막만':'녹음 '+f.voice+'개'+(T.voice?' · 동의 '+T.voice:''),blog:s.blogUrl,daangn:s.daangn,igbiz:T.igbiz?'전환 '+T.igbiz+(T.tester?' · 테스터 등록 '+T.tester:' · 테스터 등록 필요'):'',ig:s.igName,th:s.thName,tt:s.ttName};
     var cs=D.contents.filter(function(c){return c.store===s.code}), ps=D.publishes.filter(function(p){return p.store===s.code});
     function kv(k,v){return v?'<div class="kv"><span>'+k+'</span><p>'+esc(v)+'</p></div>':'';}
-    return '<div class="hd"><div><button class="link" data-tab="stores">← 매장 목록</button><h1>'+esc(s.name)+'</h1><small>'+esc([s.dong,s.industry,s.code,s.phone,s.joined?'가입 '+s.joined:'',s.noPin?'로그인 아직 안 정함':'','이번 달 작성 비용 '+cost(s.code)].filter(Boolean).join(' · '))+'</small></div><div class="acts">'+(s.research?'<button class="btn sm sec" data-planmake="'+esc(s.code)+'" data-week="'+esc(D.nextWeek||'')+'">다음 주 기획 만들기</button>':'')+'<button class="btn sm gray" data-done="resetpin" data-store="'+esc(s.code)+'">비밀번호 다시 정하기</button><button class="btn sm gray" style="color:var(--bad)" data-done="remove" data-store="'+esc(s.code)+'" data-name="'+esc(s.name)+'">삭제</button></div></div>'+
-      '<div class="two"><div><div class="box"><h2>시작하기 '+nDone(s)+' / '+KEYS.length+'</h2>'+KEYS.map(function(k,i){return '<div class="line"><span class="num '+(ok(st[k])?'on':'')+'">'+(i+1)+'</span><div class="g"><b>'+KNAME[k]+'</b><small>'+esc(note[k]||'')+'</small></div>'+(k==='ig'&&st.igbiz==='done'&&st.tester!=='done'?'<span class="chip warn">테스터 등록</span>':chip(st[k],k==='ig'||k==='th'||k==='tt'?'연결':'완료'))+'</div>';}).join('')+'</div></div>'+
+    var head='<div class="hd"><div><button class="link" data-tab="stores">← 매장 목록</button><h1>'+esc(s.name)+'</h1><small>'+esc([s.dong,s.industry,s.code,s.phone,s.joined?'가입 '+s.joined:'',s.noPin?'로그인 아직 안 정함':'','이번 달 작성 비용 '+cost(s.code)].filter(Boolean).join(' · '))+'</small></div><div class="acts">'+(s.research?'<button class="btn sm sec" data-planmake="'+esc(s.code)+'" data-week="'+esc(D.nextWeek||'')+'">다음 주 기획 만들기</button>':'')+'<button class="btn sm gray" data-done="resetpin" data-store="'+esc(s.code)+'">비밀번호 다시 정하기</button><button class="btn sm gray" style="color:var(--bad)" data-done="remove" data-store="'+esc(s.code)+'" data-name="'+esc(s.name)+'">삭제</button></div></div>';
+    var setup='<div class="two"><div><div class="box"><h2>시작하기 '+nDone(s)+' / '+KEYS.length+'</h2>'+KEYS.map(function(k,i){return '<div class="line"><span class="num '+(ok(st[k])?'on':'')+'">'+(i+1)+'</span><div class="g"><b>'+KNAME[k]+'</b><small>'+esc(note[k]||'')+'</small></div>'+(k==='ig'&&st.igbiz==='done'&&st.tester!=='done'?'<span class="chip warn">테스터 등록</span>':chip(st[k],k==='ig'||k==='th'||k==='tt'?'연결':'완료'))+'</div>';}).join('')+'</div></div>'+
       '<div><div class="box"><h2>이용 기간</h2><div style="padding-bottom:14px;line-height:2.2">'+plan(s)+'</div></div>'+
       '<div class="box"><h2>가게 소개</h2><div style="padding-bottom:10px">'+(I.menu?kv('업종·동네',[I.industry,I.dong].join(' · '))+kv('대표 메뉴',I.menu)+kv('주 손님',I.customer)+kv('자랑',I.strong)+kv('닮고 싶은 곳',I.like)+kv('매장 주소',s.place):'<p class="empty">아직 적지 않았습니다.</p>')+'</div></div>'+
-      '<div class="box"><h2>레퍼런스 조사</h2><div style="padding-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+research(s)+'<small style="color:var(--s)">'+esc(s.research||'')+'</small>'+(st.intro==='done'&&!s.refRunning?'<button class="btn sm '+(s.research?'gray':'')+'" data-done="research" data-store="'+esc(s.code)+'">'+(s.research?'다시 조사':'조사 시작')+'</button>':'')+'</div></div></div></div>'+
-      pgroups(D.plans.filter(function(p){return p.store===s.code}),false)+wlist(D.works.filter(function(c){return c.store===s.code}),false)+
-      '<div class="box"><h2>발행 기록 '+ps.length+'건</h2>'+(ps.length?ptable(ps,false):'<p class="empty">아직 올린 글이 없습니다.</p>')+'</div>';
+      '<div class="box"><h2>레퍼런스 조사</h2><div style="padding-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+research(s)+'<small style="color:var(--s)">'+esc(s.research||'')+'</small>'+(st.intro==='done'&&!s.refRunning?'<button class="btn sm '+(s.research?'gray':'')+'" data-done="research" data-store="'+esc(s.code)+'">'+(s.research?'다시 조사':'조사 시작')+'</button>':'')+'</div></div></div></div>';
+    var pubs='<div class="box"><h2>발행 기록 '+ps.length+'건</h2>'+(ps.length?ptable(ps,false):'<p class="empty">아직 올린 글이 없습니다.</p>')+'</div>';
+    var P=D.plans.filter(function(p){return p.store===s.code}), Wk=D.works.filter(function(c){return c.store===s.code}), T=D.todos.filter(function(t){return t.store===s.code}), info=sinfo(s), n=nDone(s);
+    var act=T.filter(function(t){return !/_wait$/.test(t.kind)}), wait=T.filter(function(t){return /_wait$/.test(t.kind)});
+    var steps=[['설정','<span class="chip '+(n===KEYS.length?'ok':'soft')+'">'+n+' / '+KEYS.length+'</span>'],['조사',research(s)],['기획',info.plan],['글·카드',info.make],['확인',info.check],['게시',info.pub]];
+    var stepper='<div class="stepper">'+steps.map(function(x,k){return '<div><small>'+(k+1)+'. '+x[0]+'</small>'+x[1]+'</div>';}).join('')+'</div>';
+    var tabs=[['todo','할 일',act.length],['plan','기획',P.length],['work','완성본',Wk.length],['pub','발행 기록',ps.length],['set','설정·가게 정보','']];
+    var tabbar='<div class="stabs">'+tabs.map(function(t){return '<button data-stab="'+t[0]+'" class="'+(STAB===t[0]?'on':'')+'">'+t[1]+(t[2]!==''?' <i'+(t[0]==='todo'&&t[2]?' class="hot"':'')+'>'+t[2]+'</i>':'')+'</button>';}).join('')+'</div>';
+    var body=STAB==='plan'?pgroups(P,false):STAB==='work'?wlist(Wk,false):STAB==='pub'?pubs:STAB==='set'?setup:
+      '<div class="box"><h2>'+(act.length?'지금 이 매장에서 할 일 '+act.length+'건':'지금 할 일이 없어요')+'</h2>'+(act.length?todoHtml(act):'<p class="empty" style="text-align:left">'+(wait.length?'매장 대표님의 답을 기다리는 중이에요.':'다음 차례가 오면 여기에 떠요.')+'</p>')+'</div>'+
+      (wait.length?'<div class="box"><h2>기다리는 것 '+wait.length+'건</h2>'+todoHtml(wait)+'</div>':'');
+    return head+stepper+tabbar+body;
   };
   var editRow=null;
   function pchip(p){ var s=/^(확인|보냄)/.test(p.admin); return (s?'<span class="chip soft">매장에 보냄</span>':'<span class="chip">아직 안 보냄</span>')+' '+(/^좋아요/.test(p.owner)?'<span class="chip ok">매장 좋아요</span>':/^수정/.test(p.owner)?'<span class="chip bad">수정 요청</span>':s?'<span class="chip warn">매장 확인 기다림</span>':''); }
@@ -235,7 +245,8 @@
     $('nav').innerHTML=NAV.map(function(n){var on=tab===n[0]||(tab==='store'&&n[0]==='stores');return '<button data-tab="'+n[0]+'" class="'+(on?'on':'')+'">'+ico(n[2])+n[1]+(n[0]==='dash'&&D.todos.length?'<i>'+D.todos.length+'</i>':'')+'</button>';}).join('');
     $('view').innerHTML=V[tab]();
     [].forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.onclick=function(){tab=b.dataset.tab;say('');render();window.scrollTo(0,0);};});
-    [].forEach.call(document.querySelectorAll('[data-open]'),function(b){b.onclick=function(){cur=b.dataset.open;tab='store';say('');render();window.scrollTo(0,0);};});
+    [].forEach.call(document.querySelectorAll('[data-stab]'),function(b){b.onclick=function(){STAB=b.dataset.stab;render();};});
+    [].forEach.call(document.querySelectorAll('[data-open]'),function(b){b.onclick=function(){ if(cur!==b.dataset.open||tab!=='store') STAB='todo'; if(b.dataset.go) STAB=b.dataset.go; cur=b.dataset.open;tab='store';say('');render();window.scrollTo(0,0);};});
     [].forEach.call(document.querySelectorAll('[data-copy]'),function(b){b.onclick=function(){copy(b.dataset.copy,b);};});
     [].forEach.call(document.querySelectorAll('[data-done]'),function(b){b.onclick=function(){
       var v='', w=b.dataset.done;

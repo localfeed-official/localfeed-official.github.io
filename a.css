@@ -243,3 +243,15 @@ details.more>summary::-webkit-details-marker{display:none}
 .gb{padding:0 0 6px 14px;border-left:3px solid var(--soft);margin:0 0 10px 4px}
 .bulkbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--soft);border-radius:14px;padding:10px 14px;margin-bottom:12px}
 .bulkbar b{font-size:14px;color:var(--b);margin-right:6px}
+
+.stepper{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;background:#fff;border-radius:20px;padding:16px 18px;margin-bottom:14px}
+.stepper div{display:flex;flex-direction:column;gap:6px;align-items:flex-start;position:relative}
+.stepper small{font-size:12px;color:var(--s);font-weight:600}
+.stabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.stabs button{font:inherit;font-size:14px;font-weight:700;color:var(--s);background:#fff;border:0;border-radius:12px;padding:10px 16px;cursor:pointer}
+.stabs button.on{background:var(--t,#191F28);color:#fff}
+.stabs i{font-style:normal;font-size:12px;font-weight:700;background:var(--bg);color:var(--s);border-radius:8px;padding:2px 7px;margin-left:4px}
+.stabs button.on i{background:rgba(255,255,255,.2);color:#fff}
+.stabs i.hot{background:#F04452;color:#fff}
+
+.stepper{margin-top:16px}
