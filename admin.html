@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1126m">
+<link rel="stylesheet" href="a.css?v=1126n">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1126m"></script>
+<script src="cards.js?v=1126n"></script>
 <script>
 (function(){
   var K=null;
@@ -123,8 +123,24 @@
     if(!R) return '<div class="box"><h2>레퍼런스</h2><p class="empty">불러오는 중…</p></div>';
     var head='<div class="hd" style="margin:0 0 8px"><div><h2 style="margin:0">'+esc(R.industry||'')+' 업종에서 모은 글 '+R.refs.length+'건</h2><small>반응이 평소보다 컸던 순서예요. 기획은 이 글들의 제목 구조만 참고해요. '+esc(s.research||'')+'</small></div><div class="acts">'+(s.steps.intro==='done'&&!s.refRunning?'<button class="btn sm gray" data-done="research" data-store="'+esc(s.code)+'">'+(s.research?'다시 조사':'조사 시작')+'</button>':'')+'</div></div>';
     return '<div class="box">'+head+(R.refs.length?'<table class="tbl"><thead><tr><th>채널</th><th>첫 문구</th><th>반응</th><th></th></tr></thead><tbody>'+R.refs.map(function(r){return '<tr><td style="white-space:nowrap"><b>'+esc(r.ch)+'</b><small>'+esc(r.form)+'</small></td><td>'+esc(r.hook)+(r.sum?'<small>'+esc(r.sum)+'</small>':'')+'</td><td style="white-space:nowrap">'+(r.x?'<span class="chip '+(+r.x>=5?'ok':'')+'">평소의 '+esc(r.x)+'배</span>':'')+(r.views?'<small>조회 '+esc(Number(r.views).toLocaleString())+'</small>':'')+'</td><td>'+(/^https:\/\//.test(r.url)?'<a class="link" target="_blank" rel="noopener noreferrer" href="'+esc(r.url)+'">열기</a>':'')+'</td></tr>';}).join('')+'</tbody></table>':'<p class="empty">아직 모은 글이 없습니다. 조사 시작을 눌러 주세요.</p>')+'</div>'; }
+  var PIDX={};
+  function profImg(s){ var u=(s.profile||{})['프로필 이미지']||'', own=/로컬피드/.test(s.name||''), ph=(s.files&&s.files.store)||0;
+    return '<div class="wt"><div class="wh"><b>프로필 이미지</b><span></span></div><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'+
+      (u?'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:1px solid var(--line,#E5E8EB)"></a>':'<div style="width:120px;height:120px;border-radius:50%;background:#F2F4F6;display:grid;place-items:center;color:var(--s);font-size:13px">아직 없음</div>')+
+      '<div class="acts">'+(own?'<button class="btn sm" data-pimg="logo" data-store="'+esc(s.code)+'">로고로 만들기</button>':'')+'<button class="btn sm'+(own?' gray':'')+'" data-pimg="mark" data-store="'+esc(s.code)+'">가게 이름으로 만들기</button>'+(ph?'<button class="btn sm gray" data-pimg="photo" data-store="'+esc(s.code)+'">매장 사진으로 만들기'+(PIDX[s.code]?' (다음 사진)':'')+'</button>':'')+'</div></div>'+
+      '<small>채널들이 동그랗게 잘라 보여 줘요. 인스타·스레드·틱톡·당근에 같은 이미지를 쓰면 한 가게로 보입니다. 문구를 매장에 보내면 이미지도 같이 보여요.</small></div>'; }
+  function makePimg(code,kind,b){ var s=D.stores.filter(function(x){return x.code===code;})[0]; if(!s||BUSY.pimg) return; BUSY.pimg=true; var J=job('프로필 이미지 만드는 중'); b.disabled=true;
+    var src=Promise.resolve({});
+    if(kind==='logo') src=lfCards.logos('icons/').then(function(L){ if(!L['logo.svg']) throw new Error('로고 파일을 읽지 못했어요.'); return {logo:L['logo.svg']}; });
+    if(kind==='photo') src=_api({action:'admin_profile',k:K,store:code,what:'photos'}).then(function(r){ if(!r.ok) throw new Error(r.error); if(!r.photos.length) throw new Error('매장 사진이 없어요.'); var n=PIDX[code]||0; PIDX[code]=n+1;
+      return _api({action:'admin_profile',k:K,store:code,what:'photo',key:r.photos[n%r.photos.length]}); }).then(function(r){ if(!r.ok) throw new Error(r.error); return lfCards.load(r.mime,r.data); }).then(function(im){ return {photo:im}; });
+    src.then(function(o){ o.name=s.name; o.color=s.color||''; return lfCards.profile(o); })
+      .then(function(cv){ return _api({action:'admin_profile',k:K,store:code,what:'image',value:cv.toDataURL('image/jpeg',0.92).split(',')[1]}); })
+      .then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); BUSY.pimg=false; J.end(); render(); say('프로필 이미지를 만들었어요.',true); })
+      .catch(function(e){ BUSY.pimg=false; J.end(); render(); if(/^LOGIN/.test(e.message)) return logout(true); say('프로필 이미지: '+e.message); }); }
   function profHtml(s){ var P=s.profile||{}, has=!!P['인스타 소개'];
     return '<div class="box"><div class="hd" style="margin:0 0 8px"><div><h2 style="margin:0">채널 프로필 문구 '+(s.profileSent?'<span class="chip ok">매장에 보냄</span>':has?'<span class="chip">아직 안 보냄</span>':'')+'</h2><small>매장 대표님이 각 채널 프로필에 그대로 붙여 넣을 문구예요. 글자 수 한도에 맞춰 써요.</small></div><div class="acts"><button class="btn sm '+(has?'gray':'')+'" data-prof="make" data-store="'+esc(s.code)+'">'+(has?'다시 만들기':'프로필 문구 만들기')+'</button>'+(has?(s.profileSent?'<button class="btn sm gray" data-prof="hold" data-store="'+esc(s.code)+'">보낸 것 거두기</button>':'<button class="btn sm" data-prof="send" data-store="'+esc(s.code)+'">매장에 보내기</button>'):'')+'</div></div>'+
+      profImg(s)+
       (has?PK.map(function(x){ var v=P[x[0]]||'', over=v.length>x[1], k=s.code+'|'+x[0];
         return '<div class="wt"><div class="wh"><b>'+x[0]+' <span class="chip '+(over?'bad':'')+'" style="margin-left:6px">'+v.length+' / '+x[1]+'자</span></b><span><button class="link" data-pedit="'+esc(k)+'">고치기</button></span></div>'+(editP===k?'<textarea class="in" id="pT" style="min-height:110px">'+esc(v)+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-psave="'+esc(k)+'">저장</button><button class="btn sm gray" data-pedit="">취소</button></div>':'<p>'+esc(v||'(없음)')+'</p>')+'<small>붙이는 곳: '+x[2]+'</small></div>'; }).join(''):'<p class="empty">가게 소개가 있으면 버튼 한 번으로 만들 수 있어요.</p>')+'</div>'; }
 
@@ -278,6 +294,7 @@
     $('nav').innerHTML=NAV.map(function(n){var on=tab===n[0]||(tab==='store'&&n[0]==='stores');return '<button data-tab="'+n[0]+'" class="'+(on?'on':'')+'">'+ico(n[2])+n[1]+(n[0]==='dash'&&D.todos.length?'<i>'+D.todos.length+'</i>':'')+'</button>';}).join('');
     $('view').innerHTML=V[tab](); drawJobs(); qwatch();
     [].forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.onclick=function(){tab=b.dataset.tab;say('');render();window.scrollTo(0,0);};});
+    [].forEach.call(document.querySelectorAll('[data-pimg]'),function(b){ if(BUSY.pimg) b.disabled=true; b.onclick=function(){ makePimg(b.dataset.store,b.dataset.pimg,b); };});
     [].forEach.call(document.querySelectorAll('[data-prof]'),function(b){b.onclick=function(){ var w=b.dataset.prof; if(w==='make'&&!window.confirm('채널 프로필 문구를 만들까요? 이미 있으면 새로 씁니다. 작성 비용이 조금 듭니다.')) return; b.dataset.job='프로필 문구'; call({action:'admin_profile',store:b.dataset.store,what:w},b); };});
     [].forEach.call(document.querySelectorAll('[data-pedit]'),function(b){b.onclick=function(){ editP=b.dataset.pedit||null; render(); };});
     [].forEach.call(document.querySelectorAll('[data-psave]'),function(b){b.onclick=function(){ var k=b.dataset.psave.split('|'), v=$('pT').value; editP=null; call({action:'admin_profile',store:k[0],what:'edit',key:k[1],value:v},b); };});

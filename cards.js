@@ -70,7 +70,21 @@
     ctx.fillStyle='#2B64F5'; ctx.font='700 44px '+F; ctx.fillText('localfeed.co.kr',W/2,y+590);
     ctx.fillStyle='#8B95A1'; ctx.font='500 32px '+F; ctx.fillText('이 카드뉴스는 로컬피드가 만들었어요',W/2,H-186);
     return cv; }
+  // 프로필 이미지 1080×1080. 채널들이 동그랗게 자르므로 중요한 것은 가운데 70% 안에 둔다.
+  // o.logo(대표님이 준 로고 파일) → 흰 바탕에 로고 그대로 / o.photo → 매장 사진을 보정해 정사각형으로 / 둘 다 없으면 대표색 바탕에 가게 이름
+  function profile(o){ var S=1080, cv=document.createElement('canvas'); cv.width=S; cv.height=S; var ctx=cv.getContext('2d'), col=o.color||'#2B64F5';
+    if(o.logo){ ctx.fillStyle='#fff'; ctx.fillRect(0,0,S,S); var w=S*0.52, h=w*(o.logo.height/o.logo.width||1); ctx.drawImage(o.logo,(S-w)/2,(S-h)/2,w,h); return cv; }
+    if(o.photo){ var im=o.photo, s=Math.max(S/im.width,S/im.height), pw=im.width*s, ph=im.height*s;
+      ctx.save(); ctx.filter='contrast(1.08) saturate(1.06) brightness(1.03)'; ctx.drawImage(im,(S-pw)/2,(S-ph)/2,pw,ph); ctx.restore();
+      ctx.save(); ctx.globalAlpha=0.10; ctx.fillStyle=col; ctx.fillRect(0,0,S,S); ctx.restore(); return cv; }
+    ctx.fillStyle=col; ctx.fillRect(0,0,S,S);
+    var name=String(o.name||'').trim()||'우리 가게', f=null; [210,180,150].some(function(z){ ctx.font='800 '+z+'px '+F; if(ctx.measureText(name).width<=S*0.64){ f={size:z,lines:[name]}; return true; } return false; }); if(!f) f=fit(ctx,name,S*0.62,2,[190,160,130,104,84],'800');
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='800 '+f.size+'px '+F;
+    var lh=f.size*1.16, y=S/2-(f.lines.length-1)*lh/2; f.lines.forEach(function(t,i){ ctx.fillText(t,S/2,y+i*lh); });
+    if(o.sub){ ctx.font='600 44px '+F; ctx.globalAlpha=0.85; ctx.fillText(String(o.sub).slice(0,14),S/2,y+(f.lines.length-1)*lh+f.size*0.62+44); ctx.globalAlpha=1; }
+    return cv; }
   window.lfCards={ parse:parse,
+    profile:function(o){ var ready=document.fonts&&document.fonts.load?document.fonts.load("800 160px 'Gothic A1'").catch(function(){}):Promise.resolve(); return ready.then(function(){ return profile(o||{}); }); },
     // 채널 로고(대표님이 준 파일 그대로)를 한 번 읽어 둔다. 못 읽은 것은 빼고 글자만 쓴다.
     logos:function(base){ var out={}; return Promise.all(CH.concat([[null,'logo.svg']]).map(function(x){ return new Promise(function(res){ var im=new Image(); im.onload=function(){ out[x[1]]=im; res(); }; im.onerror=function(){ res(); }; im.src=(base||'icons/')+x[1]; }); })).then(function(){ return out; }); },
     load:function(mime,b64){ return new Promise(function(res,rej){ var im=new Image(); im.onload=function(){res(im);}; im.onerror=function(){rej(new Error('사진을 읽지 못했어요.'));}; im.src='data:'+(mime||'image/jpeg')+';base64,'+b64; }); },
