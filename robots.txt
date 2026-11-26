@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin.html
+Disallow: /my.html
+Disallow: /review.html
+Disallow: /callback.html
+Disallow: /meta-callback.html
