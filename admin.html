@@ -39,7 +39,13 @@
       var c=D.works.filter(function(x){return x.id===ids[i]})[0], st=c&&D.stores.filter(function(x){return x.code===c.store})[0]||{};
       if(!c){ i++; return next(); }
       J.set('카드 그리는 중 '+(i+1)+'/'+ids.length);
-      lfCards.render(c.pages,{name:st.name||'',color:st.color||'',insta:st.insta||st.igName||'',kicker:st.industry||''}).then(function(L){ var urls=[], n=0;
+      // 표지에 깔 사진: 이 콘텐츠의 소재 이미지가 먼저, 없으면 매장이 보낸 사진을 차례로 돌려 쓴다
+      _api({action:'admin_art',k:K,id:c.id}).then(function(a){ if(!a.ok) return {};
+        var ord=Math.max(1,parseInt(c.order,10)||1), src=a.art[0]||(a.photos.length?a.photos[(ord-1)%a.photos.length]:''), src2=a.art[1]||(a.photos.length>1?a.photos[ord%a.photos.length]:'');
+        var get=function(s){ if(!s) return Promise.resolve(null); return _api({action:'admin_art_data',k:K,id:c.id,src:s}).then(function(r){ return r.ok?lfCards.load(r.mime,r.data):null; }).catch(function(){return null;}); };
+        J.set('사진 받는 중 '+(i+1)+'/'+ids.length);
+        return get(src).then(function(c1){ return get(src2).then(function(c2){ return {cover:c1,last:c2}; }); });
+      }).catch(function(){ return {}; }).then(function(pic){ return lfCards.render(c.pages,{name:st.name||'',color:st.color||'',insta:st.insta||st.igName||'',kicker:st.industry||'',cover:pic.cover||null,last:pic.last||null}); }).then(function(L){ var urls=[], n=0;
         return (function up(){ if(n>=L.length) return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')});
           J.set('카드 올리는 중 '+(i+1)+'/'+ids.length+' · '+(n+1)+'/'+L.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:n+1,data:b64(L[n])}).then(function(r){ if(!r.ok) throw new Error(r.error); urls.push(r.url); n++; return up(); }); })();
       }).then(function(r){ if(!r.ok) throw new Error(r.error); last=norm(r); D=last; i++; next(); }).catch(function(e){ J.end(); if(last) D=last; render(); say('카드 만들기가 멈췄어요: '+e.message); }); })(); }
@@ -162,6 +168,7 @@
       CH.map(function(h){ var k=c.id+'|'+h[0];
         return '<div class="wt"><div class="wh"><b>'+h[1]+'</b><span><button class="link" data-wedit="'+esc(k)+'">직접 고치기</button> · <button class="link" data-wrev="'+esc(c.id)+'" data-ch="'+esc(h[0])+'">말로 고치기</button></span></div>'+
           (editW===k?'<textarea class="in" id="wT" style="min-height:'+(h[0]==='블로그 글'?'320':'130')+'px">'+esc(c.text[h[0]])+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-wsave="'+esc(k)+'">저장</button><button class="btn sm gray" data-wedit="">취소</button></div>':'<p>'+esc(c.text[h[0]]||'(없음)')+'</p>')+'</div>'; }).join('')+
+      (!/^쇼츠/.test(c.form)?'<small><b>표지 사진</b> '+(c.art?'소재 이미지 사용 · ':'매장이 보낸 사진을 씁니다(없으면 글자만) · ')+'<button class="link" data-art="'+esc(c.id)+'">소재 이미지 주소 넣기</button></small>':'')+
       (c.check?'<small><b>검수</b> '+esc(c.check)+'</small>':'')+(c.memo?'<small><b>메모</b> '+esc(c.memo)+'</small>':'')+
       '<div class="acts" style="margin-top:10px">'+(c.pages&&!/^쇼츠/.test(c.form)?'<button class="btn sm gray" data-cards="'+esc(c.id)+'">'+(c.media.length?'카드 다시 만들기':'카드 만들기')+'</button>':'')+'<button class="btn sm gray" data-wrev="'+esc(c.id)+'" data-ch="">전체를 말로 고치기</button>'+(/^(대표님 확인|수정)/.test(c.status)||!c.status?'<button class="btn sm" data-wdo="send" data-id="'+esc(c.id)+'">매장에 보내기</button>':/^매장 확인/.test(c.status)?'<button class="btn sm gray" data-wdo="hold" data-id="'+esc(c.id)+'">보낸 것 거두기</button>':/^(확정|게시 실패)/.test(c.status)?'<button class="btn sm" data-pubnow="'+esc(c.id)+'">지금 올리기</button>':'')+'</div></details>'; }
   function wlist(list,withStore){ return '<div class="box"><h2>완성본 '+list.length+'건</h2>'+(list.length?list.slice().reverse().map(function(c){return witem(c,withStore);}).join(''):'<p class="empty">아직 없습니다. 매장 대표님이 기획에 좋아요를 누르면 대시보드에 "글 만들기"가 뜹니다.</p>')+'</div>'; }
@@ -199,6 +206,7 @@
     [].forEach.call(document.querySelectorAll('[data-make]'),function(b){b.onclick=function(){ var rows=b.dataset.make.split(',').filter(Boolean); if(!rows.length||!window.confirm(rows.length+'건의 채널별 글을 만들까요? 한 건에 1분쯤 걸리고 작성 비용이 듭니다. 끝날 때까지 이 화면을 닫지 마세요.')) return;
         b.disabled=true; var i=0, last=null, J=job('글 만들기 시작'); (function next(){ if(i>=rows.length){ J.end(); if(last){D=last;} render(); return; } b.textContent=(i+1)+'/'+rows.length+' 만드는 중…'; J.set('글 만드는 중 '+(i+1)+'/'+rows.length+' · 다른 메뉴를 봐도 계속 돼요'); _api({action:'admin_make_one',k:K,row:rows[i]}).then(function(r){ if(!r.ok) throw new Error(r.error); last=norm(r); i++; next(); }).catch(function(e){ J.end(); if(last) D=last; render(); say((i+1)+'번째에서 멈췄어요: '+e.message); }); })(); };});
     [].forEach.call(document.querySelectorAll('[data-cards]'),function(b){b.onclick=function(){ b.disabled=true; b.textContent='그리는 중…'; makeCards(b.dataset.cards.split(',').filter(Boolean)); };});
+    [].forEach.call(document.querySelectorAll('[data-art]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.art})[0]; var v=window.prompt('표지에 깔 이미지 주소를 넣어 주세요. 두 개면 쉼표로 나눕니다(둘째는 마지막 장).\n비우면 매장 사진을 씁니다.',c?c.art:''); if(v===null) return; var id=b.dataset.art; call({action:'admin_content',id:id,what:'edit',ch:'소재 이미지',value:v.trim()},b).then(function(){ makeCards([id]); }); };});
     [].forEach.call(document.querySelectorAll('[data-wdo]'),function(b){b.onclick=function(){ call({action:'admin_content',id:b.dataset.id,what:b.dataset.wdo},b); };});
     [].forEach.call(document.querySelectorAll('[data-wedit]'),function(b){b.onclick=function(){ editW=b.dataset.wedit||null; if(editW) openW=editW.split('|')[0]; render(); };});
     [].forEach.call(document.querySelectorAll('[data-wsave]'),function(b){b.onclick=function(){ var k=b.dataset.wsave.split('|'), v=$('wT').value; editW=null; call({action:'admin_content',id:k[0],what:'edit',ch:k[1],value:v},b); };});
