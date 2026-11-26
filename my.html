@@ -222,6 +222,7 @@
     var P=S.plans||[]; if(!P.length) return '';
     var wk=P[P.length-1].week, L=P.filter(function(p){return p.week===wk}), wait=L.filter(function(p){return /^대기/.test(p.owner)}).length;
     var w=String(wk).split('-');
+    if(!wait&&!fixRow) return '<details class="card fold"><summary><span><b>이번 주 주제 '+L.length+'건</b><small>확인이 끝났어요</small></span><em>보기</em></summary>'+L.map(function(p){return '<div class="pl"><div class="pf">'+esc(p.form)+'</div><b style="font-size:15px">'+esc(p.topic)+'</b></div>';}).join('')+'</details>';
     return '<div class="card"><b style="font-size:17px">'+(wait?'이번 주 올릴 내용을 봐 주세요':'이번 주 기획 확인이 끝났어요')+'</b><small style="display:block;color:var(--s);font-size:13px;margin:4px 0 10px">'+(+w[1])+'월 '+(+w[2])+'일 주 · '+L.length+'건'+(wait?' 중 '+wait+'건 남았어요 · 좋아요를 누른 것만 만들어요':' · 이제 로컬피드가 만들어서 다시 보여 드려요')+'</small>'+
       L.map(function(p){ var okd=/^좋아요/.test(p.owner), fx=/^수정/.test(p.owner);
         return '<details class="pl"'+(/^대기/.test(p.owner)&&!fixRow||fixRow===p.row?' open':'')+'><summary><span class="pf">'+esc(p.form)+'</span><b>'+esc(p.topic)+'</b><span class="ps">'+(okd?'<span class="chip ok">좋아요</span>':fx?'<span class="chip warn">고치는 중</span>':'<span class="chip soft">확인 전</span>')+'</span></summary><ol>'+p.pages.split(' / ').map(function(x){return '<li>'+esc(x.replace(/^\d+\s*/,''))+'</li>';}).join('')+'</ol>'+
@@ -232,18 +233,24 @@
   }
   // 완성본: 로컬피드가 보낸 글과 이미지를 보고 좋아요 / 고쳐 주세요
   var fixW=null, CHS=[['인스타 캡션','인스타그램'],['스레드 글','스레드'],['당근 글','당근'],['틱톡 제목·설명','틱톡'],['블로그 글','네이버 블로그']];
+  function workItem(c,open){ var okd=/^확정|^게시/.test(c.status), fx=/^수정/.test(c.status), d=String(c.date).split('-'), wait=/^매장 확인/.test(c.status);
+    var texts=CHS.filter(function(h){return c.text[h[0]];});
+    var one=function(h){ return '<div class="wt"><div class="wh"><b>'+h[1]+'</b>'+(h[0]==='블로그 글'?'<button class="link" data-copyw="'+esc(c.id)+'">글 복사</button>':'')+'</div><p>'+esc(c.text[h[0]])+'</p></div>'; };
+    return '<details class="pl"'+(open?' open':'')+'><summary><span class="pf">'+(+d[1])+'월 '+(+d[2])+'일에 올라가요</span><b>'+esc(c.title)+'</b><span class="ps">'+(/^게시 완료/.test(c.status)?'<span class="chip ok">올라갔어요</span>':okd?'<span class="chip ok">좋아요</span>':fx?'<span class="chip warn">고치는 중</span>':'<span class="chip soft">확인 전</span>')+'</span></summary>'+
+      (c.media.length?'<div class="wm">'+c.media.map(function(u){return /\.mp4($|\?)/.test(u)?'<video src="'+esc(u)+'" controls preload="none"></video>':'<img src="'+esc(u)+'" loading="lazy" alt="">';}).join('')+'</div>':'')+
+      (texts.length?one(texts[0]):'')+
+      (texts.length>1?'<details class="more"><summary>다른 채널 글 '+(texts.length-1)+'개 보기</summary>'+texts.slice(1).map(one).join('')+'</details>':'')+
+      (fx&&c.ownerMemo?'<small>보내신 말: '+esc(c.ownerMemo)+'</small>':'')+
+      (fixW===c.id?'<textarea class="in" id="fixWT" placeholder="예: 글이 너무 길어요. 사진을 바꿔 주세요" style="min-height:76px;margin-top:8px"></textarea><p class="msg" id="fixWM"></p><div class="stack"><button class="btn" data-wfixgo="'+esc(c.id)+'">이렇게 고쳐 주세요</button><button class="btn gray" data-wfixno="1">취소</button></div>'
+        :wait?'<div class="stack" style="margin-top:10px"><button class="btn" data-wok="'+esc(c.id)+'">좋아요, 올려 주세요</button><button class="btn gray" data-wfix="'+esc(c.id)+'">고쳐 주세요</button></div>':'')+
+      '</details>'; }
   function worksCard(){
-    var W=(S.works||[]); if(!W.length) return '';
-    var wait=W.filter(function(c){return /^매장 확인/.test(c.status)}).length;
-    return '<div class="card"><b style="font-size:17px">'+(wait?'올라갈 글을 확인해 주세요':'확인한 글이에요')+'</b><small style="display:block;color:var(--s);font-size:13px;margin:4px 0 10px">'+(wait?wait+'건 남았어요 · 좋아요를 누른 것만 올라가요':'정해진 날에 올라가요 · 블로그 글은 복사해서 붙여 주세요')+'</small>'+
-      W.slice().reverse().map(function(c){ var okd=/^확정/.test(c.status), fx=/^수정/.test(c.status), d=String(c.date).split('-');
-        return '<details class="pl"'+(/^매장 확인/.test(c.status)||fixW===c.id?' open':'')+'><summary><span class="pf">'+(+d[1])+'월 '+(+d[2])+'일 · '+esc(c.form)+'</span><b>'+esc(c.title)+'</b><span class="ps">'+(okd?'<span class="chip ok">좋아요</span>':fx?'<span class="chip warn">고치는 중</span>':'<span class="chip soft">확인 전</span>')+'</span></summary>'+
-          (c.media.length?'<div class="wm">'+c.media.map(function(u){return /\.mp4($|\?)/.test(u)?'<video src="'+esc(u)+'" controls preload="none"></video>':'<img src="'+esc(u)+'" loading="lazy" alt="">';}).join('')+'</div>':'<small>'+(/^쇼츠/.test(c.form)?'영상은 대본을 먼저 확인한 뒤에 만들어요.':'이미지는 글을 확인한 뒤에 만들어서 다시 보여 드려요.')+'</small>')+
-          CHS.map(function(h,i){ var t=c.text[h[0]]; return t?'<details class="wt"'+(i===0?' open':'')+'><summary class="wh"><b>'+h[1]+'</b>'+(h[0]==='블로그 글'?'<button class="link" data-copyw="'+esc(c.id)+'">글 복사</button>':'')+'</summary><p>'+esc(t)+'</p></details>':''; }).join('')+
-          (fx&&c.ownerMemo?'<small>보내신 말: '+esc(c.ownerMemo)+'</small>':'')+
-          (fixW===c.id?'<textarea class="in" id="fixWT" placeholder="예: 인스타 글이 너무 길어요. 영업시간이 바뀌었어요" style="min-height:76px;margin-top:8px"></textarea><p class="msg" id="fixWM"></p><div class="stack"><button class="btn" data-wfixgo="'+esc(c.id)+'">이렇게 고쳐 주세요</button><button class="btn gray" data-wfixno="1">취소</button></div>'
-            :okd||fx?'':'<div class="stack" style="margin-top:10px"><button class="btn" data-wok="'+esc(c.id)+'">좋아요</button><button class="btn gray" data-wfix="'+esc(c.id)+'">고쳐 주세요</button></div>')+
-          '</details>'; }).join('')+'</div>';
+    var W=(S.works||[]).slice().reverse(); if(!W.length) return '';
+    var wait=W.filter(function(c){return /^매장 확인/.test(c.status)}), rest=W.filter(function(c){return !/^매장 확인/.test(c.status)});
+    var html='';
+    if(wait.length) html+='<div class="card"><b style="font-size:17px">올라갈 글을 봐 주세요</b><small style="display:block;color:var(--s);font-size:13px;margin:4px 0 6px">'+wait.length+'건 · 좋아요를 누른 것만 올라가요</small>'+wait.map(function(c,i){return workItem(c,i===0||fixW===c.id);}).join('')+'</div>';
+    if(rest.length) html+='<details class="card fold"'+(fixW&&rest.some(function(c){return c.id===fixW})?' open':'')+'><summary><span><b>확인한 글 '+rest.length+'건</b><small>정해진 날에 올라가요</small></span><em>보기</em></summary>'+rest.map(function(c){return workItem(c,false);}).join('')+'</details>';
+    return html;
   }
   function md(d){var p=String(d||'').split('-');return p.length===3?(+p[1])+'월 '+(+p[2])+'일':'';}
   function planCard(){
@@ -260,9 +267,13 @@
     if(cur===null) for(i=0;i<st.length;i++){ if(!st[i].done&&!st[i].lock&&!st[i].wait){cur=i;break;} }
     if(cur===null) for(i=0;i<st.length;i++){ if(!st[i].done&&st[i].wait){cur=i;break;} }
     document.title=S.store.name+' · 로컬피드';
-    if(done===total){h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';}
+    if(done===total){ var nW=(S.works||[]).filter(function(c){return /^매장 확인/.test(c.status)}).length, nP=(S.plans||[]).filter(function(p){return /^대기/.test(p.owner)}).length;
+      if(nW+nP){h1.innerHTML='대표님, 확인할 것이<br>'+(nW+nP)+'건 있어요';sub.textContent=S.store.name+' · 좋아요만 눌러 주시면 돼요';}
+      else if((S.works||[]).length||(S.plans||[]).length){h1.innerHTML='대표님, 지금은<br>하실 일이 없어요';sub.textContent=S.store.name+' · 다음 확인이 생기면 알려드릴게요';}
+      else {h1.innerHTML='대표님, 준비가 다 됐어요';sub.textContent=S.store.name+' · 첫 기획이 나오면 알려드릴게요';} }
     else{h1.innerHTML='대표님, 처음 한 번만 해 주시면<br>나머지는 저희가 해요';sub.textContent=S.store.name+' · 처음 한 번만';}
-    var html=planCard()+loginCard()+worksCard()+plansCard()+svc(done,total)+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'아래 줄을 누르면 순서를 바꿔 할 수 있어요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>';
+    var allDone=done===total&&cur===null&&!forced;
+    var html=planCard()+loginCard()+worksCard()+plansCard()+(allDone?'':svc(done,total))+(allDone?'':'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+done+' / '+total+' 완료</b><span style="font-size:13px;color:var(--s)">'+(done===total?'모두 끝났어요':'아래 줄을 누르면 순서를 바꿔 할 수 있어요')+'</span></div><div class="bar"><i style="width:'+Math.round(done/total*100)+'%"></i></div></div>');
     function rows(list){return '<div class="card tight">'+list.map(function(x){
       var chip=x.s.later?'<span class="chip warn">나중에</span>':x.s.done?'<span class="chip ok">완료</span>':x.s.wait?'<span class="chip warn">기다리는 중</span>':'<span class="chip">다음</span>';
       var name=x.s.id==='ig'&&S.igName?S.igName:x.s.id==='th'&&S.thName?S.thName:x.s.id==='tt'&&S.ttName?S.ttName:x.s.d;
@@ -270,9 +281,13 @@
     }).join('')+'</div>';}
     var before=[],after=[];
     st.forEach(function(s,i){ if(i===cur) return; (cur===null||i<cur?before:after).push({s:s,i:i}); });
+    if(allDone){ var later=st.filter(function(s){return s.later}).length;
+      html+='<details class="card fold"><summary><span><b>처음 설정 '+done+' / '+total+' 완료</b><small>'+(later?'나중에 보내기로 한 것 '+later+'가지가 있어요':'연결과 가게 정보를 고칠 수 있어요')+'</small></span><em>보기</em></summary>'+rows(before).replace('class="card tight"','class="tight"')+'</details>'; }
+    else {
     if(before.length) html+=rows(before);
     if(cur!==null) html+='<div class="card">'+body(st[cur],cur+1)+'</div>';
     if(after.length) html+=rows(after);
+    }
     app.innerHTML=html;
     var go=document.getElementById('go'), v=document.getElementById('v');
     var codeEl=document.getElementById('code');
