@@ -225,3 +225,7 @@ details.more>summary::-webkit-details-marker{display:none}
 .note{background:var(--bg);border-radius:16px;padding:14px;margin:4px 0 10px}
 .note b{display:block;font-size:14px}
 .note small{display:block;font-size:12px;color:var(--s);margin-top:2px;line-height:1.5}
+
+.tb{width:100%;border-collapse:collapse;font-size:14px}
+.tb th{text-align:left;font-weight:600;color:var(--s);font-size:12px;padding:8px 6px;border-bottom:1px solid var(--bg)}
+.tb td{padding:9px 6px;border-bottom:1px solid var(--bg)}
