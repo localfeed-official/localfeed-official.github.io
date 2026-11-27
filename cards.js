@@ -112,9 +112,10 @@
   function video(L,o){ o=o||{};
     if(!window.VideoEncoder||!window.VideoFrame) return Promise.reject(new Error('이 브라우저는 영상을 만들지 못해요. 크롬에서 해 주세요.'));
     var VW=1080,VH=1920,FPS=30, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o.color), per=o.per||3000, fade=350, N=Math.round((L.length*per+400)/1000*FPS);
-    function slide(i,alpha){ var im=L[i]; if(!im) return; var h=VW*im.height/im.width, y=(VH-h)/2; ctx.globalAlpha=alpha; ctx.drawImage(im,0,y,VW,h); ctx.globalAlpha=1; }
+    // 장면마다 아주 천천히 커지게 해서 멈춘 그림이 아니라 영상으로 보이게 한다(멈춘 그림만 이어 붙인 파일은 틱톡이 알림을 만들지 않는 일이 있었다)
+    function slide(i,alpha,z){ var im=L[i]; if(!im) return; var h=VW*im.height/im.width, s=1+0.05*(z||0), w2=VW*s, h2=h*s; ctx.globalAlpha=alpha; ctx.drawImage(im,(VW-w2)/2,(VH-h2)/2,w2,h2); ctx.globalAlpha=1; }
     function frame(t){ ctx.fillStyle=col; ctx.fillRect(0,0,VW,VH); ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(0,0,VW,VH);
-      var i=Math.min(L.length-1,Math.floor(t/per)), into=t-i*per; slide(i,1); if(i>0&&into<fade) slide(i-1,1-into/fade);
+      var i=Math.min(L.length-1,Math.floor(t/per)), into=t-i*per; slide(i,1,into/per); if(i>0&&into<fade) slide(i-1,1-into/fade,1);
       ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillRect(0,VH-6,VW*Math.min(1,t/(L.length*per)),6); }
     return loadMuxer().then(function(){ var codecs=['avc1.640028','avc1.4D4028','avc1.42E028'];
       return codecs.reduce(function(p,c){ return p.then(function(ok){ if(ok) return ok; return VideoEncoder.isConfigSupported({codec:c,width:VW,height:VH,bitrate:4000000,framerate:FPS}).then(function(r){ return r.supported?c:''; },function(){ return ''; }); }); },Promise.resolve(''));
@@ -122,7 +123,7 @@
       return new Promise(function(res,rej){
         var mux=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:VW,height:VH,frameRate:FPS},fastStart:'in-memory'}), dead=false;
         var enc=new VideoEncoder({output:function(ch,meta){ mux.addVideoChunk(ch,meta); },error:function(e){ dead=true; rej(new Error('영상을 만들다 멈췄어요: '+e.message)); }});
-        enc.configure({codec:codec,width:VW,height:VH,bitrate:4000000,framerate:FPS});
+        enc.configure({codec:codec,width:VW,height:VH,bitrate:5000000,framerate:FPS});
         var n=0; (function step(){ if(dead) return;
           while(n<N&&enc.encodeQueueSize<4){ frame(Math.min(n*1000/FPS,L.length*per-1)); var vf=new VideoFrame(cv,{timestamp:Math.round(n*1e6/FPS),duration:Math.round(1e6/FPS)}); enc.encode(vf,{keyFrame:n%FPS===0}); vf.close(); n++; }
           if(n<N) return setTimeout(step,0);
