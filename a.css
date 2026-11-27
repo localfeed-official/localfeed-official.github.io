@@ -274,6 +274,7 @@ details.more>summary::-webkit-details-marker{display:none}
 /* 불러오는 동안: 로고가 숨 쉬듯 움직이고 점 세 개가 차례로 뜬다 */
 .lfload{display:flex;align-items:center;justify-content:center;gap:7px;min-height:38vh;flex-wrap:wrap;align-content:center}
 .lfload.sm{min-height:90px}
+.lfload.inl{min-height:0;justify-content:flex-start;flex-wrap:nowrap;padding:8px 0}.lfload.inl small{margin-left:6px}
 .lfload img{width:54px;height:54px;flex-basis:100%;object-fit:contain;margin:0 auto 6px;animation:lfbreath 1.4s ease-in-out infinite}
 .lfload i{width:7px;height:7px;border-radius:50%;background:var(--b);opacity:.25;animation:lfdot 1.2s ease-in-out infinite}
 .lfload i:nth-of-type(2){animation-delay:.18s}.lfload i:nth-of-type(3){animation-delay:.36s}
