@@ -106,23 +106,27 @@
     if(sub){ ctx.fillStyle='#4E5968'; var sb=fit(ctx,sub,BW-X*2,3,[46,42,38,34],'500'); ctx.font='500 '+sb.size+'px '+F; lines(ctx,sb.lines,X,y,Math.round(sb.size*1.5)); }
     ctx.font='600 28px '+F; ctx.fillStyle='#8B95A1'; ctx.fillText(o.name||'',X,BH-104);
     return cv; }
-  // 틱톡용: 카드들을 세로 영상(1080×1920)으로 묶는다. 한 장에 약 3초, 장 사이는 짧게 겹쳐 넘긴다. 브라우저가 실시간으로 녹화한다.
-  function video(L,o){ return new Promise(function(res,rej){
-    if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream) return rej(new Error('이 브라우저는 영상을 만들지 못해요. 크롬에서 해 주세요.'));
-    var mime=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].filter(function(m){ try{ return MediaRecorder.isTypeSupported(m); }catch(e){ return false; } })[0];
-    if(!mime) return rej(new Error('이 브라우저는 영상을 만들지 못해요.'));
-    var VW=1080,VH=1920, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o&&o.color), per=(o&&o.per)||3000, fade=350, total=L.length*per+400;
+  // 틱톡용: 카드들을 세로 영상(1080×1920, 초당 30장 고정)으로 묶는다. 한 장에 약 3초, 장 사이는 짧게 겹쳐 넘긴다.
+  // 틱톡은 초당 장 수가 일정한 영상만 받는다. 그래서 화면 녹화가 아니라 한 장씩 직접 인코딩해 MP4로 만든다(mp4-muxer.js 필요).
+  function loadMuxer(){ if(window.Mp4Muxer) return Promise.resolve(); return new Promise(function(res,rej){ var s=document.createElement('script'); s.src='mp4-muxer.js?v=5'; s.onload=function(){ res(); }; s.onerror=function(){ rej(new Error('영상 도구를 불러오지 못했어요.')); }; document.head.appendChild(s); }); }
+  function video(L,o){ o=o||{};
+    if(!window.VideoEncoder||!window.VideoFrame) return Promise.reject(new Error('이 브라우저는 영상을 만들지 못해요. 크롬에서 해 주세요.'));
+    var VW=1080,VH=1920,FPS=30, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o.color), per=o.per||3000, fade=350, N=Math.round((L.length*per+400)/1000*FPS);
     function slide(i,alpha){ var im=L[i]; if(!im) return; var h=VW*im.height/im.width, y=(VH-h)/2; ctx.globalAlpha=alpha; ctx.drawImage(im,0,y,VW,h); ctx.globalAlpha=1; }
     function frame(t){ ctx.fillStyle=col; ctx.fillRect(0,0,VW,VH); ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(0,0,VW,VH);
-      var i=Math.min(L.length-1,Math.floor(t/per)), into=t-i*per; slide(i,1); if(i>0&&into<fade){ slide(i-1,1-into/fade); }
-      ctx.fillStyle='rgba(255,255,255,'+(0.9+0.1*Math.sin(t/200))+')'; ctx.fillRect(0,VH-6,VW*Math.min(1,t/(L.length*per)),6); }   // 아래 진행 줄(매 프레임 화면이 바뀌어 녹화가 끊기지 않게도 한다)
-    frame(0);
-    var rec=new MediaRecorder(cv.captureStream(30),{mimeType:mime,videoBitsPerSecond:3500000}), chunks=[], t0=0, timer=null;
-    rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
-    rec.onerror=function(){ clearInterval(timer); rej(new Error('영상을 만들다 멈췄어요.')); };
-    rec.onstop=function(){ res(new Blob(chunks,{type:mime.split(';')[0]})); };
-    rec.start(500); t0=performance.now();
-    timer=setInterval(function(){ var t=performance.now()-t0; if(t>=total){ clearInterval(timer); frame(L.length*per-1); setTimeout(function(){ rec.stop(); },150); return; } frame(t); },33); }); }
+      var i=Math.min(L.length-1,Math.floor(t/per)), into=t-i*per; slide(i,1); if(i>0&&into<fade) slide(i-1,1-into/fade);
+      ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillRect(0,VH-6,VW*Math.min(1,t/(L.length*per)),6); }
+    return loadMuxer().then(function(){ var codecs=['avc1.640028','avc1.4D4028','avc1.42E028'];
+      return codecs.reduce(function(p,c){ return p.then(function(ok){ if(ok) return ok; return VideoEncoder.isConfigSupported({codec:c,width:VW,height:VH,bitrate:4000000,framerate:FPS}).then(function(r){ return r.supported?c:''; },function(){ return ''; }); }); },Promise.resolve(''));
+    }).then(function(codec){ if(!codec) throw new Error('이 컴퓨터는 영상 인코딩을 지원하지 않아요.');
+      return new Promise(function(res,rej){
+        var mux=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:VW,height:VH,frameRate:FPS},fastStart:'in-memory'}), dead=false;
+        var enc=new VideoEncoder({output:function(ch,meta){ mux.addVideoChunk(ch,meta); },error:function(e){ dead=true; rej(new Error('영상을 만들다 멈췄어요: '+e.message)); }});
+        enc.configure({codec:codec,width:VW,height:VH,bitrate:4000000,framerate:FPS});
+        var n=0; (function step(){ if(dead) return;
+          while(n<N&&enc.encodeQueueSize<4){ frame(Math.min(n*1000/FPS,L.length*per-1)); var vf=new VideoFrame(cv,{timestamp:Math.round(n*1e6/FPS),duration:Math.round(1e6/FPS)}); enc.encode(vf,{keyFrame:n%FPS===0}); vf.close(); n++; }
+          if(n<N) return setTimeout(step,0);
+          enc.flush().then(function(){ mux.finalize(); res(new Blob([mux.target.buffer],{type:'video/mp4'})); },rej); })(); }); }); }
   window.lfCards={ parse:parse,
     video:video,
     blog:function(pages,o){ o=o||{}; var P=parse(pages); if(P.length<2) return Promise.resolve([]); var mid=P.slice(1,P.length>2?P.length-1:P.length).slice(0,4);
