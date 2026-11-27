@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127b">
+<link rel="stylesheet" href="a.css?v=1127c">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127b"></script>
+<script src="cards.js?v=1127c"></script>
 <script>
 (function(){
   var K=null;
@@ -284,7 +284,7 @@
       '<div class="acts" style="margin-top:10px">'+(c.pages&&!/^쇼츠/.test(c.form)?'<button class="btn sm gray" data-cards="'+esc(c.id)+'">'+(c.media.length?'카드 다시 만들기':'카드 만들기')+'</button>':'')+'<button class="btn sm gray" data-wrev="'+esc(c.id)+'" data-ch="">전체를 말로 고치기</button>'+(c.text['당근 글']?'<button class="btn sm gray" data-dg="'+esc(c.id)+'">당근 창 열기</button>':'')+(/^(대표님 확인|수정)/.test(c.status)||!c.status?'<button class="btn sm" data-wdo="send" data-id="'+esc(c.id)+'">매장에 보내기</button>':/^매장 확인/.test(c.status)?'<button class="btn sm gray" data-wdo="hold" data-id="'+esc(c.id)+'">보낸 것 거두기</button>':/^(확정|게시 실패)/.test(c.status)?'<button class="btn sm" data-pubnow="'+esc(c.id)+'">지금 올리기</button>':'')+'</div></details>'; }
   function wlist(list,withStore){ return '<div class="box"><h2>완성본 '+list.length+'건</h2>'+(list.length?list.slice().reverse().map(function(c){return witem(c,withStore);}).join(''):'<p class="empty">아직 없습니다. 매장 대표님이 기획에 좋아요를 누르면 대시보드에 "글 만들기"가 뜹니다.</p>')+'</div>'; }
   function ctable(list,withStore){return '<table class="tbl"><thead><tr><th>예정일</th>'+(withStore?'<th>매장</th>':'')+'<th>제목</th><th>형식</th><th>상태</th></tr></thead><tbody>'+list.map(function(c){return '<tr><td>'+esc(md(c.date))+'</td>'+(withStore?'<td>'+esc(c.name)+'</td>':'')+'<td><b style="font-size:14px">'+esc(c.title)+'</b>'+(c.check?'<small>'+esc(c.check)+'</small>':'')+'</td><td>'+esc(c.form)+'</td><td><span class="chip '+(/게시|완료/.test(c.status)?'ok':/확인/.test(c.status)?'warn':'')+'">'+esc(c.status||'-')+'</span></td></tr>';}).join('')+'</tbody></table>';}
-  function ptable(list,withStore){return '<table class="tbl"><thead><tr><th>시각</th>'+(withStore?'<th>매장</th>':'')+'<th>채널</th><th>상태</th><th>내용</th></tr></thead><tbody>'+list.map(function(p){return '<tr><td style="white-space:nowrap">'+esc(p.at)+'</td>'+(withStore?'<td>'+esc(p.name)+'</td>':'')+'<td>'+esc(p.ch)+'</td><td><span class="chip '+(p.status==='게시됨'?'ok':'bad')+'">'+esc(p.status)+'</span></td><td>'+(p.link?'<a href="'+esc(p.link)+'" target="_blank" rel="noopener">게시물 열기</a>':'<small>'+esc(p.memo)+'</small>')+'</td></tr>';}).join('')+'</tbody></table>';}
+  function ptable(list,withStore){return '<table class="tbl"><thead><tr><th>시각</th>'+(withStore?'<th>매장</th>':'')+'<th>채널</th><th>상태</th><th>내용</th></tr></thead><tbody>'+list.map(function(p){return '<tr><td style="white-space:nowrap">'+esc(p.at)+'</td>'+(withStore?'<td>'+esc(p.name)+'</td>':'')+'<td>'+esc(p.ch)+'</td><td><span class="chip '+(p.status==='게시됨'?'ok':'bad')+'">'+esc(/^틱톡/.test(p.ch)&&p.status==='게시됨'?'초안 보냄':p.status)+'</span></td><td>'+(/^틱톡/.test(p.ch)&&p.status==='게시됨'?'<small>틱톡 앱 알림함에서 눌러 올려요</small> <button class="link" data-tts="'+esc(p.memo)+'" data-store="'+esc(p.store)+'">지금 상태 확인</button>':p.link?'<a href="'+esc(p.link)+'" target="_blank" rel="noopener">게시물 열기</a>':'<small>'+esc(p.memo)+'</small>')+'</td></tr>';}).join('')+'</tbody></table>';}
   V.refs=function(){return '<div class="hd"><h1>레퍼런스 조사</h1></div><div class="box"><h2>업종별 조사 현황</h2>'+(D.industries.length?'<table class="tbl"><thead><tr><th>업종</th><th>모은 글</th><th>마지막 조사</th><th>해시태그</th><th>블로그 키워드</th></tr></thead><tbody>'+D.industries.filter(function(i){ if(!FIL) return true; var s=D.stores.filter(function(x){return x.code===FIL})[0]; return s&&s.industry===i.name; }).map(function(i){return '<tr><td><b>'+esc(i.name)+'</b></td><td>'+(i.running?'<span class="chip soft">조사 중</span>':'<span class="chip '+(i.count?'ok':'')+'">'+i.count+'건</span>')+'</td><td>'+esc(md(i.last)||'-')+'</td><td><small>'+esc(i.ig)+'</small></td><td><small>'+esc(i.blog)+'</small></td></tr>';}).join('')+'</tbody></table>':'<p class="empty">업종이 없습니다.</p>')+'<p class="empty">조사는 매장 상세나 대시보드 알림의 "조사 시작"으로 겁니다. 인스타·틱톡은 10분쯤 뒤에 들어옵니다. 해시태그와 키워드는 시트의 업종 탭에서 고칩니다. <a href="'+esc(D.sheet)+'" target="_blank" rel="noopener">시트 열기</a></p></div>';};
   V.contents=function(){return '<div class="hd"><div><h1>기획 · 콘텐츠</h1><small>기획은 매장별·주별로 묶여 있어요. 먼저 읽어 보고 "매장에 보내기"를 누르면 매장 대표님 화면에 뜹니다.</small></div></div>'+pgroups(F(D.plans),!FIL)+wlist(F(D.works),!FIL);};
   V.pubs=function(){return '<div class="hd"><h1>발행 기록</h1></div><div class="box"><h2>최근 '+F(D.publishes).length+'건</h2>'+(F(D.publishes).length?ptable(F(D.publishes),!FIL):'<p class="empty">아직 없습니다.</p>')+'</div>';};
@@ -347,6 +347,7 @@
           var body=kind==='profile'?{action:'admin_profile',what:'make',store:t.store}:kind==='research'?{action:'admin_done',what:'research',store:t.store}:kind==='plan_make'?{action:'admin_plan_make',store:t.store,week:t.week||''}:{action:'admin_plan_week',store:t.store,week:t.week};
           body.k=K; _api(body).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); }).catch(function(e){ fail.push(t.name+': '+e.message); }).then(function(){ i++; render(); next(); }); })(); };});
     // 당근: 공식 연동이 없어, 글을 복사해 두고 당근비즈니스 창을 옆에 띄운다. 붙여 넣고 올리는 것은 사람이 한다.
+    [].forEach.call(document.querySelectorAll('[data-tts]'),function(b){b.onclick=function(){ b.disabled=true; b.textContent='확인 중…'; _api({action:'admin_tt_status',k:K,store:b.dataset.store,id:b.dataset.tts}).then(function(r){ b.disabled=false; b.textContent='지금 상태 확인'; if(!r.ok) throw new Error(r.error); say(r.text,/INBOX|COMPLETE/.test(r.status)); }).catch(function(e){ b.disabled=false; b.textContent='지금 상태 확인'; if(/^LOGIN/.test(e.message)) return logout(true); say(e.message); }); };});
     [].forEach.call(document.querySelectorAll('[data-dg]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.dg;})[0]; if(!c) return; var st=D.stores.filter(function(x){return x.code===c.store;})[0]||{}, no=String(st.daangn||'').replace(/\D/g,'');
       var w=window.open('https://business.daangn.com/'+(no?'biz_accounts/'+no:''),'lf_daangn','width=540,height=880,left='+Math.max(0,screen.width-560)+',top=40');
       var t=c.text['당근 글']; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ say('당근 글을 복사했어요. 열린 당근 창에서 소식 쓰기를 누르고 붙여 넣은 뒤, 사진은 이 콘텐츠의 카드 이미지를 넣어 주세요.'+(w?'':' (창이 안 열렸으면 팝업 차단을 풀어 주세요.)'),true); },function(){ window.prompt('아래 글을 복사해 당근에 붙여 넣어 주세요',t); }); };});
