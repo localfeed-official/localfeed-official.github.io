@@ -128,6 +128,55 @@
           while(n<N&&enc.encodeQueueSize<4){ frame(Math.min(n*1000/FPS,L.length*per-1)); var vf=new VideoFrame(cv,{timestamp:Math.round(n*1e6/FPS),duration:Math.round(1e6/FPS)}); enc.encode(vf,{keyFrame:n%FPS===0}); vf.close(); n++; }
           if(n<N) return setTimeout(step,0);
           enc.flush().then(function(){ mux.finalize(); res(new Blob([mux.target.buffer],{type:'video/mp4'})); },rej); })(); }); }); }
+  // 완성된 쇼츠 영상에 대본의 자막을 얹는다: 영상은 풀어서 한 장씩 다시 그리고(글자는 여기서 그리므로 깨지지 않는다), 소리는 손대지 않고 그대로 옮긴다
+  function loadMp4box(){ if(window.MP4Box) return Promise.resolve(); return new Promise(function(res,rej){ var s=document.createElement('script'); s.src='mp4box.js?v=1'; s.onload=function(){ res(); }; s.onerror=function(){ rej(new Error('영상 읽는 도구를 불러오지 못했어요.')); }; document.head.appendChild(s); }); }
+  function capTimes(script,dur){ var S=shScenes(script), T=S.map(function(x){ var m=String(x.time).match(/(\d+(?:\.\d+)?)\s*[~\-–]\s*(\d+(?:\.\d+)?)/); return m?[+m[1],+m[2]]:null; }), end=0;
+    T.forEach(function(t){ if(t) end=Math.max(end,t[1]); });
+    if(!end||T.some(function(t){return !t||t[1]<=t[0];})) return S.map(function(x,i){ return {a:dur*i/S.length,b:dur*(i+1)/S.length,cap:x.cap}; });
+    var k=dur/end; return S.map(function(x,i){ return {a:T[i][0]*k,b:T[i][1]*k,cap:x.cap}; }); }
+  function caption(buf,script,o){ o=o||{};
+    if(!window.VideoEncoder||!window.VideoDecoder) return Promise.reject(new Error('이 브라우저는 영상을 다시 만들지 못해요. 크롬에서 해 주세요.'));
+    var fonts=document.fonts&&document.fonts.load?document.fonts.load("800 60px 'Gothic A1'").catch(function(){}):Promise.resolve();
+    return Promise.all([loadMuxer(),loadMp4box(),fonts]).then(function(){ return new Promise(function(res,rej){
+      var f=MP4Box.createFile(), V=[], A=[], vt=null, at=null; buf.fileStart=0;
+      f.onError=function(e){ rej(new Error('영상 파일을 읽지 못했어요: '+e)); };
+      f.onReady=function(info){ vt=info.videoTracks[0]; at=info.audioTracks[0]||null; if(!vt) return rej(new Error('영상 파일에 화면이 없어요.'));
+        f.onSamples=function(id,user,smp){ (user==='v'?V:A).push.apply(user==='v'?V:A,smp); };
+        f.setExtractionOptions(vt.id,'v',{nbSamples:100000}); if(at) f.setExtractionOptions(at.id,'a',{nbSamples:100000}); f.start(); };
+      f.appendBuffer(buf); f.flush();
+      var tries=0; (function wait(){ if(!vt){ if(++tries>100) return rej(new Error('영상 파일을 읽지 못했어요. MP4 파일인지 봐 주세요.')); return setTimeout(wait,50); }
+        if(V.length<vt.nb_samples||(at&&A.length<at.nb_samples)){ if(++tries>200) return rej(new Error('영상 파일을 끝까지 읽지 못했어요.')); return setTimeout(wait,50); }
+        res({f:f,vt:vt,at:at,V:V,A:A}); })(); }); })
+    .then(function(m){ var vt=m.vt, at=m.at, e=m.f.getTrackById(vt.id).mdia.minf.stbl.stsd.entries[0], box=e.avcC||e.hvcC||e.vpcC||e.av1C, desc;
+      if(box){ var ds=new DataStream(undefined,0,DataStream.BIG_ENDIAN); box.write(ds); desc=new Uint8Array(ds.buffer,8); }
+      var SW=vt.video.width, SH=vt.video.height, k=SW<720?720/SW:1, W=Math.round(SW*k/2)*2, H=Math.round(SH*k/2)*2, dur=vt.duration/vt.timescale||m.V.length/24, fps=Math.max(1,Math.round(m.V.length/dur));
+      var cfg={codec:vt.codec,codedWidth:SW,codedHeight:SH}; if(desc) cfg.description=desc;
+      var asc=null, aOk=false; if(at&&/^mp4a/.test(at.codec)){ aOk=true; try{ var es=m.f.getTrackById(at.id).mdia.minf.stbl.stsd.entries[0].esds.esd; (es.descs||[]).forEach(function(d){ if(d.tag===4) (d.descs||[]).forEach(function(x){ if(x.tag===5&&x.data) asc=new Uint8Array(x.data); }); }); }catch(err){}
+        if(!asc){ var fi=[96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000].indexOf(at.audio.sample_rate); if(fi<0) aOk=false; else asc=new Uint8Array([(2<<3)|(fi>>1),((fi&1)<<7)|(at.audio.channel_count<<3)]); } }
+      return VideoDecoder.isConfigSupported(cfg).then(function(r){ if(!r.supported) throw new Error('이 컴퓨터는 이 영상('+vt.codec+')을 풀지 못해요.');
+        var codecs=['avc1.640028','avc1.4D4028','avc1.42E028']; return codecs.reduce(function(p,c){ return p.then(function(ok){ if(ok) return ok; return VideoEncoder.isConfigSupported({codec:c,width:W,height:H,bitrate:4000000,framerate:fps}).then(function(q){ return q.supported?c:''; },function(){ return ''; }); }); },Promise.resolve('')); })
+      .then(function(codec){ if(!codec) throw new Error('이 컴퓨터는 영상 인코딩을 지원하지 않아요.');
+        return new Promise(function(res,rej){ var caps=capTimes(script,dur), cv=document.createElement('canvas'); cv.width=W; cv.height=H; var ctx=cv.getContext('2d'), lay={}, dead=false, t0=null, nOut=0, nIn=0, N=m.V.length;
+          var mo={target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:W,height:H,frameRate:fps},fastStart:'in-memory',firstTimestampBehavior:'offset'}; if(aOk) mo.audio={codec:'aac',numberOfChannels:at.audio.channel_count,sampleRate:at.audio.sample_rate};
+          var mux=new Mp4Muxer.Muxer(mo), fail=function(msg){ if(dead) return; dead=true; rej(new Error(msg)); };
+          var enc=new VideoEncoder({output:function(ch,meta){ mux.addVideoChunk(ch,meta); },error:function(e){ fail('영상을 만들다 멈췄어요: '+e.message); }});
+          enc.configure({codec:codec,width:W,height:H,bitrate:W>=1080?7000000:4500000,framerate:fps});
+          function drawCap(t){ var c=null; for(var i=0;i<caps.length;i++) if(t>=caps[i].a&&t<caps[i].b){ c=caps[i]; break; } if(!c||!c.cap) return;
+            var L=lay[c.cap]; if(!L){ var z=Math.round(W*0.088); L=lay[c.cap]=niceFit(ctx,c.cap,W*0.84,[z,Math.round(z*0.9),Math.round(z*0.8),Math.round(z*0.7),Math.round(z*0.6)],'800',Math.round(z*0.8)); }
+            var lh=Math.round(L.size*1.26), y=H*0.7-(L.lines.length-1)*lh/2, a=Math.min(1,(t-c.a)/0.12);
+            ctx.save(); ctx.globalAlpha=a; ctx.font='800 '+L.size+'px '+F; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round'; ctx.lineWidth=Math.max(6,L.size*0.2); ctx.strokeStyle='rgba(0,0,0,.92)'; ctx.fillStyle='#fff';
+            L.lines.forEach(function(s,i){ ctx.strokeText(s,W/2,y+i*lh); }); L.lines.forEach(function(s,i){ ctx.fillText(s,W/2,y+i*lh); }); ctx.restore(); }
+          var dec=new VideoDecoder({output:function(fr){ if(dead){ fr.close(); return; } if(t0===null) t0=fr.timestamp; var ts=fr.timestamp-t0;
+              ctx.drawImage(fr,0,0,W,H); drawCap(ts/1e6); var vf=new VideoFrame(cv,{timestamp:ts,duration:fr.duration||Math.round(1e6/fps)}); fr.close();
+              enc.encode(vf,{keyFrame:nOut%fps===0}); vf.close(); nOut++; if(o.progress&&nOut%12===0) o.progress(nOut/N); },
+            error:function(e){ fail('영상을 풀다 멈췄어요: '+e.message); }});
+          dec.configure(cfg);
+          (function feed(){ if(dead) return;
+            while(nIn<N&&dec.decodeQueueSize<8&&enc.encodeQueueSize<8&&nIn-nOut<24){ var sm=m.V[nIn++]; dec.decode(new EncodedVideoChunk({type:sm.is_sync?'key':'delta',timestamp:Math.round(sm.cts*1e6/sm.timescale),duration:Math.round(sm.duration*1e6/sm.timescale),data:sm.data})); }
+            if(nIn<N) return setTimeout(feed,4);
+            dec.flush().then(function(){ return enc.flush(); }).then(function(){ if(dead) return;
+              if(aOk) m.A.forEach(function(sm,i){ mux.addAudioChunkRaw(new Uint8Array(sm.data),'key',Math.round(sm.cts*1e6/sm.timescale),Math.round(sm.duration*1e6/sm.timescale),i===0?{decoderConfig:{codec:at.codec,numberOfChannels:at.audio.channel_count,sampleRate:at.audio.sample_rate,description:asc}}:undefined); });
+              mux.finalize(); res({blob:new Blob([mux.target.buffer],{type:'video/mp4'}),w:W,h:H,dur:dur,audio:aOk,frames:nOut,caps:caps.filter(function(c){return c.cap;}).length}); }).catch(function(e){ fail('영상을 마무리하지 못했어요: '+(e&&e.message||e)); }); })(); }); }); }); }
   // 당근 글 나누기: 맨 위 "제목: …", "배너: 큰 글 | 강조 | 혜택 · 혜택" 두 줄과 본문
   function dgParts(text,fallbackTitle){ var L=String(text||'').replace(/\r/g,'').split('\n'), title='', ban=null, rest=[];
     L.forEach(function(l){ var m=l.match(/^\s*제목\s*[:：]\s*(.+)$/), b=l.match(/^\s*배너\s*[:：]\s*(.+)$/);
@@ -194,6 +243,7 @@
     if(sc.say){ ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 36px '+F; ctx.fillText('말',M,y); y+=58; var sy=wordFit(ctx,'“'+sc.say+'”',VW-M*2,7,[54,48,44,40],'500'); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='500 '+sy.size+'px '+F; lines(ctx,sy.lines.slice(0,7),M,y,Math.round(sy.size*1.5)); }
     return cv; }
   window.lfCards={ parse:parse,
+    caption:caption, capTimes:capTimes,
     shScenes:shScenes, shBoard:function(script,o){ var S=shScenes(script); return S.map(function(s,i){ return shDraw(s,i,S.length,o||{}); }); },
     ttScenes:ttScenes, ttFrames:function(text,o){ var S=ttScenes(text); if(S.length<3) return []; return S.map(function(s,i){ return ttDraw(s,i,S.length,o||{}); }); },
     daangn:dgParts, daangnBanner:dgBanner,
