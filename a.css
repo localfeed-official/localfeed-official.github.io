@@ -270,3 +270,16 @@ details.more>summary::-webkit-details-marker{display:none}
 .cprev.clip{max-height:440px;overflow:hidden;position:relative}
 .cprev.clip:after{content:'';position:absolute;left:0;right:0;bottom:0;height:90px;background:linear-gradient(rgba(242,244,246,0),var(--bg))}
 .acts2{display:flex;gap:16px;justify-content:center;margin:8px 0 2px}
+
+/* 불러오는 동안: 로고가 숨 쉬듯 움직이고 점 세 개가 차례로 뜬다 */
+.lfload{display:flex;align-items:center;justify-content:center;gap:7px;min-height:38vh;flex-wrap:wrap;align-content:center}
+.lfload.sm{min-height:90px}
+.lfload img{width:54px;height:54px;flex-basis:100%;object-fit:contain;margin:0 auto 6px;animation:lfbreath 1.4s ease-in-out infinite}
+.lfload i{width:7px;height:7px;border-radius:50%;background:var(--b);opacity:.25;animation:lfdot 1.2s ease-in-out infinite}
+.lfload i:nth-of-type(2){animation-delay:.18s}.lfload i:nth-of-type(3){animation-delay:.36s}
+@keyframes lfbreath{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.92);opacity:.75}}
+@keyframes lfdot{0%,80%,100%{opacity:.22;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+.skel b,.skel span{display:block;border-radius:8px;background:linear-gradient(90deg,#EEF0F3 25%,#F7F8FA 40%,#EEF0F3 55%);background-size:300% 100%;animation:lfshine 1.4s linear infinite}
+.skel b{height:20px;width:55%;margin-bottom:12px}.skel span{height:13px;margin-top:8px}.skel span:last-child{width:70%}
+@keyframes lfshine{0%{background-position:100% 0}100%{background-position:0 0}}
+@media (prefers-reduced-motion:reduce){.lfload img,.lfload i,.skel b,.skel span{animation:none}}
