@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127e">
+<link rel="stylesheet" href="a.css?v=1127f">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127e"></script>
+<script src="cards.js?v=1127f"></script>
 <script>
 (function(){
   var K=null;
@@ -46,7 +46,7 @@
         return (function blog(n){ if(n>=need.length) return null; J.set('블로그 글 쓰는 중 '+(i+1)+'/'+rows.length);
           return _api({action:'admin_make_blog',k:K,id:need[n]}).then(function(r2){ if(r2.ok){ D=norm(r2); render(); } return blog(n+1); }); })(0);
       }).then(function(){ i++; next(); }).catch(function(e){ stop((i+1)+'번째에서 멈췄어요: '+e.message+' (이미 만든 것은 남아 있어요. 다시 누르면 남은 것부터 만듭니다)'); }); })(); }
-  var OPT={}, TTERR='';
+  var OPT={}, TTERR='', REPOST='';
   function makeCards(ids){ if(!ids.length||BUSY.cards) return; BUSY.cards=true; var i=0, last=null, J=job('카드 그리기 시작');
     function b64(cv){ return cv.toDataURL('image/jpeg',0.9).split(',')[1]; }
     (function next(){ if(i>=ids.length){ BUSY.cards=false; J.end(); if(last) D=last; render(); if(TTERR){ say('카드는 만들었지만 틱톡용 영상은 만들지 못했어요: '+TTERR); TTERR=''; } return; }
@@ -287,7 +287,10 @@
           (h[0]==='블로그 글'&&!c.text[h[0]]&&editW!==k?'<p>(아직 없음) <button class="link" data-blog="'+esc(c.id)+'">블로그 글 쓰기</button></p>':editW===k?'<textarea class="in" id="wT" style="min-height:'+(h[0]==='블로그 글'?'320':'130')+'px">'+esc(c.text[h[0]])+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-wsave="'+esc(k)+'">저장</button><button class="btn sm gray" data-wedit="">취소</button></div>':'<p>'+esc(c.text[h[0]]||'(없음)')+'</p>')+'</div>'; }).join('')+
       (!/^쇼츠/.test(c.form)?'<small><b>표지 사진</b> '+(c.art?'소재 이미지 사용 · ':'매장이 보낸 사진을 씁니다(없으면 글자만) · ')+'<button class="link" data-art="'+esc(c.id)+'">소재 이미지 주소 넣기</button></small>':'')+
       (c.check?'<small><b>검수</b> '+esc(c.check)+'</small>':'')+(c.memo?'<small><b>메모</b> '+esc(c.memo)+'</small>':'')+
-      '<div class="acts" style="margin-top:10px">'+(c.pages&&!/^쇼츠/.test(c.form)?'<button class="btn sm gray" data-cards="'+esc(c.id)+'">'+(c.media.length?'카드 다시 만들기':'카드 만들기')+'</button>':'')+'<button class="btn sm gray" data-wrev="'+esc(c.id)+'" data-ch="">전체를 말로 고치기</button>'+(c.text['당근 글']?'<button class="btn sm gray" data-dg="'+esc(c.id)+'">당근 창 열기</button>':'')+(/^(대표님 확인|수정)/.test(c.status)||!c.status?'<button class="btn sm" data-wdo="send" data-id="'+esc(c.id)+'">매장에 보내기</button>':/^매장 확인/.test(c.status)?'<button class="btn sm gray" data-wdo="hold" data-id="'+esc(c.id)+'">보낸 것 거두기</button>':/^(확정|게시 실패)/.test(c.status)?'<button class="btn sm" data-pubnow="'+esc(c.id)+'">지금 올리기</button>':'')+(/^(확정|게시)/.test(c.status)&&c.media.length&&(D.ttStores||'').split(/[\s,]+/).indexOf(c.store)>=0?'<button class="btn sm gray" data-ttsend="'+esc(c.id)+'">틱톡 초안 보내기</button>':'')+'</div></details>'; }
+      '<div class="acts" style="margin-top:10px">'+(c.pages&&!/^쇼츠/.test(c.form)?'<button class="btn sm gray" data-cards="'+esc(c.id)+'">'+(c.media.length?'카드 다시 만들기':'카드 만들기')+'</button>':'')+'<button class="btn sm gray" data-wrev="'+esc(c.id)+'" data-ch="">전체를 말로 고치기</button>'+(c.text['당근 글']?'<button class="btn sm gray" data-dg="'+esc(c.id)+'">당근 창 열기</button>':'')+(/^(대표님 확인|수정)/.test(c.status)||!c.status?'<button class="btn sm" data-wdo="send" data-id="'+esc(c.id)+'">매장에 보내기</button>':/^매장 확인/.test(c.status)?'<button class="btn sm gray" data-wdo="hold" data-id="'+esc(c.id)+'">보낸 것 거두기</button>':/^(확정|게시 실패)/.test(c.status)?'<button class="btn sm" data-pubnow="'+esc(c.id)+'">지금 올리기</button>':'')+(/^게시/.test(c.status)&&c.media.length?'<button class="btn sm gray" data-repost="'+esc(c.id)+'">'+(REPOST===c.id?'닫기':'다시 올리기')+'</button>':'')+'</div>'+
+      (REPOST===c.id?(function(){ var tt=(D.ttStores||'').split(/[\s,]+/).indexOf(c.store)>=0, old=D.publishes.filter(function(p){return p.id===c.id&&p.status==='게시됨'&&/^https:/.test(p.link);});
+        return '<div class="caution" style="margin-top:10px"><b>어디에 다시 올릴까요?</b> 고른 채널에만 새 게시물이 하나 더 올라가요. 먼저 올라간 게시물은 자동으로 지워지지 않으니, 앱에서 직접 지워 주세요.'+(old.length?' 먼저 올라간 것: '+old.map(function(p){return '<a href="'+esc(p.link)+'" target="_blank" rel="noopener">'+esc(p.ch)+'</a>';}).join(' · '):'')+
+          '<div class="acts" style="margin-top:8px"><button class="btn sm" data-rp="ig" data-id="'+esc(c.id)+'">인스타</button><button class="btn sm" data-rp="th" data-id="'+esc(c.id)+'">스레드</button>'+(tt?'<button class="btn sm" data-rp="tt" data-id="'+esc(c.id)+'">틱톡 초안</button>':'')+'</div></div>'; })():'')+'</details>'; }
   function wlist(list,withStore){ return '<div class="box"><h2>완성본 '+list.length+'건</h2>'+(list.length?list.slice().reverse().map(function(c){return witem(c,withStore);}).join(''):'<p class="empty">아직 없습니다. 매장 대표님이 기획에 좋아요를 누르면 대시보드에 "글 만들기"가 뜹니다.</p>')+'</div>'; }
   function ctable(list,withStore){return '<table class="tbl"><thead><tr><th>예정일</th>'+(withStore?'<th>매장</th>':'')+'<th>제목</th><th>형식</th><th>상태</th></tr></thead><tbody>'+list.map(function(c){return '<tr><td>'+esc(md(c.date))+'</td>'+(withStore?'<td>'+esc(c.name)+'</td>':'')+'<td><b style="font-size:14px">'+esc(c.title)+'</b>'+(c.check?'<small>'+esc(c.check)+'</small>':'')+'</td><td>'+esc(c.form)+'</td><td><span class="chip '+(/게시|완료/.test(c.status)?'ok':/확인/.test(c.status)?'warn':'')+'">'+esc(c.status||'-')+'</span></td></tr>';}).join('')+'</tbody></table>';}
   function ptable(list,withStore){return '<table class="tbl"><thead><tr><th>시각</th>'+(withStore?'<th>매장</th>':'')+'<th>채널</th><th>상태</th><th>내용</th></tr></thead><tbody>'+list.map(function(p){return '<tr><td style="white-space:nowrap">'+esc(p.at)+'</td>'+(withStore?'<td>'+esc(p.name)+'</td>':'')+'<td>'+esc(p.ch)+'</td><td><span class="chip '+(p.status==='게시됨'?'ok':'bad')+'">'+esc(/^틱톡/.test(p.ch)&&p.status==='게시됨'?'초안 보냄':p.status)+'</span></td><td>'+(/^틱톡/.test(p.ch)&&p.status==='게시됨'?'<small>틱톡 앱 알림함에서 눌러 올려요</small> <button class="link" data-tts="'+esc(p.memo)+'" data-store="'+esc(p.store)+'">지금 상태 확인</button>':p.link?'<a href="'+esc(p.link)+'" target="_blank" rel="noopener">게시물 열기</a>':'<small>'+esc(p.memo)+'</small>')+'</td></tr>';}).join('')+'</tbody></table>';}
@@ -357,7 +360,8 @@
     [].forEach.call(document.querySelectorAll('[data-dg]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.dg;})[0]; if(!c) return; var st=D.stores.filter(function(x){return x.code===c.store;})[0]||{}, no=String(st.daangn||'').replace(/\D/g,'');
       var w=window.open('https://business.daangn.com/'+(no?'biz_accounts/'+no:''),'lf_daangn','width=540,height=880,left='+Math.max(0,screen.width-560)+',top=40');
       var t=c.text['당근 글']; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ say('당근 글을 복사했어요. 열린 당근 창에서 소식 쓰기를 누르고 붙여 넣은 뒤, 사진은 이 콘텐츠의 카드 이미지를 넣어 주세요.'+(w?'':' (창이 안 열렸으면 팝업 차단을 풀어 주세요.)'),true); },function(){ window.prompt('아래 글을 복사해 당근에 붙여 넣어 주세요',t); }); };});
-    [].forEach.call(document.querySelectorAll('[data-ttsend]'),function(b){b.onclick=function(){ if(!window.confirm('틱톡에 초안을 보낼까요? 인스타와 스레드에는 다시 올리지 않아요. 틱톡 앱 알림함에서 눌러야 올라갑니다.')) return; b.dataset.job='틱톡 초안 보내기'; call({action:'admin_tt_send',id:b.dataset.ttsend},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패/.test(D.notice)); }); b.textContent='보내는 중…'; };});
+    [].forEach.call(document.querySelectorAll('[data-repost]'),function(b){b.onclick=function(){ REPOST=REPOST===b.dataset.repost?'':b.dataset.repost; openW=b.dataset.repost; render(); };});
+    [].forEach.call(document.querySelectorAll('[data-rp]'),function(b){b.onclick=function(){ var nm={ig:'인스타',th:'스레드',tt:'틱톡(초안)'}[b.dataset.rp]; if(!window.confirm(nm+'에 다시 올릴까요? 새 게시물이 하나 더 생기고, 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job=nm+' 다시 올리기'; REPOST=''; call({action:'admin_repost',id:b.dataset.id,ch:b.dataset.rp},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패/.test(D.notice)); }); b.textContent='올리는 중…'; };});
     [].forEach.call(document.querySelectorAll('[data-pubnow]'),function(b){b.onclick=function(){ if(!window.confirm('인스타와 스레드'+(D.ttReady&&(D.ttStores||'').split(/[\s,]+/).indexOf((D.works.filter(function(x){return x.id===b.dataset.pubnow;})[0]||{}).store)>=0?'(틱톡은 초안으로)':'')+'에 지금 올릴까요? 당근과 블로그는 자동으로 올라가지 않아요. 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job='지금 올리기'; call({action:'admin_publish',id:b.dataset.pubnow},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패|없습니다/.test(D.notice)); }); b.textContent='올리는 중… 1분쯤'; };});
     [].forEach.call(document.querySelectorAll('[data-art]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.art})[0]; var v=window.prompt('표지에 깔 이미지 주소를 넣어 주세요. 두 개면 쉼표로 나눕니다(둘째는 마지막 장).\n비우면 매장 사진을 씁니다.',c?c.art:''); if(v===null) return; var id=b.dataset.art; b.dataset.job='소재 이미지 저장'; call({action:'admin_content',id:id,what:'edit',ch:'소재 이미지',value:v.trim()},b).then(function(){ makeCards([id]); }); };});
     [].forEach.call(document.querySelectorAll('[data-wdo]'),function(b){b.onclick=function(){ var w=D.works.filter(function(x){return x.id===b.dataset.id})[0]; if(b.dataset.wdo==='send'&&w&&!/^쇼츠/.test(w.form)&&!w.media.length&&!window.confirm('카드 이미지가 아직 없어요. 글만 먼저 매장에 보낼까요?\n(취소하고 "카드 만들기"를 먼저 누르는 것을 권해요)')) return; call({action:'admin_content',id:b.dataset.id,what:b.dataset.wdo},b); };});
