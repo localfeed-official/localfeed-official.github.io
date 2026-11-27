@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127i">
+<link rel="stylesheet" href="a.css?v=1127j">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127i"></script>
+<script src="cards.js?v=1127j"></script>
 <script>
 (function(){
   var K=null;
@@ -358,6 +358,9 @@
           body.k=K; _api(body).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); }).catch(function(e){ fail.push(t.name+': '+e.message); }).then(function(){ i++; render(); next(); }); })(); };});
     // 당근: 공식 연동이 없어, 올리기 요청을 발행 탭에 적어 두면 브라우저 작업이 차례로 올린다.
     [].forEach.call(document.querySelectorAll('[data-dgreq]'),function(b){b.onclick=function(){ var w=b.dataset.dgreq; if(w==='request'&&!window.confirm('당근에 올릴까요? 대표님 컴퓨터의 크롬에서 차례로 올라갑니다(보통 1시간 안). 올린 뒤에는 당근에서 직접 지워야 합니다.')) return; b.dataset.job='당근 올리기'; call({action:'admin_daangn',id:b.dataset.id,what:w},b).then(function(){ if(D&&D.notice) say(D.notice,true); }); };});
+    [].forEach.call(document.querySelectorAll('[data-tts]'),function(b){b.onclick=function(){ b.disabled=true; b.textContent='확인 중…'; _api({action:'admin_tt_status',k:K,store:b.dataset.store,id:b.dataset.tts}).then(function(r){ b.disabled=false; b.textContent='지금 상태 확인'; if(!r.ok) throw new Error(r.error); say(r.text,/INBOX|COMPLETE/.test(r.status)); }).catch(function(e){ b.disabled=false; b.textContent='지금 상태 확인'; if(/^LOGIN/.test(e.message)) return logout(true); say(e.message); }); };});
+    [].forEach.call(document.querySelectorAll('[data-repost]'),function(b){b.onclick=function(){ REPOST=REPOST===b.dataset.repost?'':b.dataset.repost; openW=b.dataset.repost; render(); };});
+    [].forEach.call(document.querySelectorAll('[data-rp]'),function(b){b.onclick=function(){ var nm={ig:'인스타',th:'스레드',tt:'틱톡(초안)'}[b.dataset.rp]; if(!window.confirm(nm+'에 다시 올릴까요? 새 게시물이 하나 더 생기고, 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job=nm+' 다시 올리기'; REPOST=''; call({action:'admin_repost',id:b.dataset.id,ch:b.dataset.rp},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패/.test(D.notice)); }); b.textContent='올리는 중…'; };});
     [].forEach.call(document.querySelectorAll('[data-pubnow]'),function(b){b.onclick=function(){ if(!window.confirm('인스타와 스레드'+(D.ttReady&&(D.ttStores||'').split(/[\s,]+/).indexOf((D.works.filter(function(x){return x.id===b.dataset.pubnow;})[0]||{}).store)>=0?'(틱톡은 초안으로)':'')+'에 지금 올릴까요? 당근과 블로그는 자동으로 올라가지 않아요. 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job='지금 올리기'; call({action:'admin_publish',id:b.dataset.pubnow},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패|없습니다/.test(D.notice)); }); b.textContent='올리는 중… 1분쯤'; };});
     [].forEach.call(document.querySelectorAll('[data-art]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.art})[0]; var v=window.prompt('표지에 깔 이미지 주소를 넣어 주세요. 두 개면 쉼표로 나눕니다(둘째는 마지막 장).\n비우면 매장 사진을 씁니다.',c?c.art:''); if(v===null) return; var id=b.dataset.art; b.dataset.job='소재 이미지 저장'; call({action:'admin_content',id:id,what:'edit',ch:'소재 이미지',value:v.trim()},b).then(function(){ makeCards([id]); }); };});
     [].forEach.call(document.querySelectorAll('[data-wdo]'),function(b){b.onclick=function(){ var w=D.works.filter(function(x){return x.id===b.dataset.id})[0]; if(b.dataset.wdo==='send'&&w&&!/^쇼츠/.test(w.form)&&!w.media.length&&!window.confirm('카드 이미지가 아직 없어요. 글만 먼저 매장에 보낼까요?\n(취소하고 "카드 만들기"를 먼저 누르는 것을 권해요)')) return; call({action:'admin_content',id:b.dataset.id,what:b.dataset.wdo},b); };});
