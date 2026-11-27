@@ -140,7 +140,7 @@
     ctx.textBaseline='top'; var y=M;
     var kick=[o.dong,o.kicker].filter(Boolean).join(' · ')||o.name||''; if(kick){ ctx.font='700 40px '+F; var kw=ctx.measureText(kick).width+64; ctx.fillStyle='rgba(255,255,255,.2)'; rr(ctx,M,y,kw,76,38); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(kick,M+32,y+18); }
     y+=130;
-    var big=wordFit(ctx,B.big||P.title,S-M*2,3,[132,116,100,88,76,66],'800'), lh=Math.round(big.size*1.2); ctx.fillStyle='#fff'; ctx.font='800 '+big.size+'px '+F; lines(ctx,big.lines,M,y,lh); y+=lh*big.lines.length+36;
+    var big=niceFit(ctx,B.big||P.title,S-M*2,[132,116,100,88,76,66],'800',100), lh=Math.round(big.size*1.2); ctx.fillStyle='#fff'; ctx.font='800 '+big.size+'px '+F; lines(ctx,big.lines,M,y,lh); y+=lh*big.lines.length+36;
     if(B.em){ var em=fit(ctx,B.em,S-M*2-88,1,[92,80,68,58,50],'800'); ctx.font='800 '+em.size+'px '+F; var ew=Math.min(S-M*2,ctx.measureText(em.lines[0]).width+88), eh=em.size+56; ctx.fillStyle='#fff'; rr(ctx,M,y,ew,eh,28); ctx.fill(); ctx.fillStyle=col; ctx.fillText(em.lines[0],M+44,y+26); y+=eh+34; }
     var x=M; ctx.font='700 38px '+F; (B.chips||[]).forEach(function(t){ var w2=ctx.measureText('✓ '+t).width+56; if(x+w2>S-M){ x=M; y+=88; } ctx.fillStyle='rgba(255,255,255,.18)'; rr(ctx,x,y,w2,72,36); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText('✓ '+t,x+28,y+17); x+=w2+16; });
     ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(0,S-150,S,150); ctx.fillStyle='#fff'; ctx.font='800 50px '+F; ctx.fillText('당근 채팅으로 문의하기',M,S-112);
@@ -154,6 +154,15 @@
       words.forEach(function(w){ if(ctx.measureText(w).width>maxW) ok=false; var t=cur?cur+' '+w:w; if(ctx.measureText(t).width<=maxW) cur=t; else { if(cur) L.push(cur); cur=w; } }); if(cur) L.push(cur);
       if(ok&&L.length<=maxLines) return {size:sizes[k],lines:L}; }
     return fit(ctx,text,maxW,maxLines,sizes,weight); }
+  // 세로 화면용 줄 나눔: 짧으면 한 줄로(글자를 조금 줄여서라도), 길면 두 줄을 비슷한 길이로 나눈다. 낱말 중간에서는 끊지 않는다.
+  function niceFit(ctx,text,maxW,sizes,weight,oneMin){ var words=String(text).split(/\s+/).filter(Boolean), n=words.length;
+    function splits(k){ var out=[]; (function rec(start,left,acc){ if(left===1){ out.push(acc.concat([words.slice(start).join(' ')])); return; } for(var e=start+1;e<=n-left+1;e++) rec(e,left-1,acc.concat([words.slice(start,e).join(' ')])); })(0,k,[]); return out; }
+    function best(k,size){ ctx.font=weight+' '+size+'px '+F; var pick=null; splits(k).forEach(function(L){ var w=L.map(function(t){return ctx.measureText(t).width;}), mx=Math.max.apply(null,w), mn=Math.min.apply(null,w); if(mx>maxW) return; var score=mx-mn; if(!pick||score<pick.score) pick={lines:L,score:score}; }); return pick; }
+    var k,i,b;
+    for(i=0;i<sizes.length&&sizes[i]>=oneMin;i++){ b=best(1,sizes[i]); if(b) return {size:sizes[i],lines:b.lines}; }
+    for(k=2;k<=3;k++){ if(n<k) break; for(i=0;i<sizes.length;i++){ b=best(k,sizes[i]); if(b) return {size:sizes[i],lines:b.lines}; } }
+    for(i=0;i<sizes.length;i++){ b=best(1,sizes[i]); if(b) return {size:sizes[i],lines:b.lines}; }
+    return wordFit(ctx,text,maxW,3,sizes,weight); }
   function ttDraw(sc,i,n,o){ var VW=1080,VH=1920, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o.color), M=90, first=i===0, lastS=i===n-1, dark=first||lastS;
     ctx.fillStyle=dark?col:'#F7F8FA'; ctx.fillRect(0,0,VW,VH);
     if(first&&o.cover){ var im=o.cover, s=Math.max(VW/im.width,VH/im.height), w=im.width*s, h=im.height*s; ctx.save(); ctx.filter='contrast(1.06) saturate(1.05)'; ctx.drawImage(im,(VW-w)/2,(VH-h)/2,w,h); ctx.restore(); ctx.fillStyle='rgba(0,0,0,.52)'; ctx.fillRect(0,0,VW,VH); }
@@ -161,7 +170,7 @@
     
     ctx.textBaseline='top'; ctx.fillStyle=dark?'rgba(255,255,255,.92)':'#8B95A1'; ctx.font='700 44px '+F; ctx.fillText(o.name||'',M,250);
     if(!dark){ ctx.textAlign='right'; ctx.fillText(i+' / '+(n-2),VW-M,250); ctx.textAlign='left'; }
-    var b=wordFit(ctx,sc.big,VW-M*2,3,[156,136,118,102,88,76],'800'), lh=Math.round(b.size*1.22), sb=sc.sub?wordFit(ctx,sc.sub,VW-M*2,3,[64,58,52,46],'600'):null, lh2=sb?Math.round(sb.size*1.45):0;
+    var b=niceFit(ctx,sc.big,VW-M*2,[156,140,124,110,96,84,72],'800',110), lh=Math.round(b.size*1.22), sb=sc.sub?niceFit(ctx,sc.sub,VW-M*2,[64,58,52,46,42],'600',46):null, lh2=sb?Math.round(sb.size*1.45):0;
     var total=lh*b.lines.length+(sb?44+lh2*sb.lines.length:0), y=Math.max(600,Math.round((VH-total)/2)-60);
     if(!dark){ ctx.fillStyle=col; ctx.fillRect(M,y-70,120,14); }
     ctx.fillStyle=dark?'#fff':'#191F28'; ctx.font='800 '+b.size+'px '+F; lines(ctx,b.lines,M,y,lh); y+=lh*b.lines.length+44;
