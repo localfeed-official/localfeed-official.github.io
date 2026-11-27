@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127g">
+<link rel="stylesheet" href="a.css?v=1127h">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127g"></script>
+<script src="cards.js?v=1127h"></script>
 <script>
 (function(){
   var K=null;
@@ -358,7 +358,7 @@
     // 당근: 공식 연동이 없어, 글을 복사해 두고 당근비즈니스 창을 옆에 띄운다. 붙여 넣고 올리는 것은 사람이 한다.
     [].forEach.call(document.querySelectorAll('[data-tts]'),function(b){b.onclick=function(){ b.disabled=true; b.textContent='확인 중…'; _api({action:'admin_tt_status',k:K,store:b.dataset.store,id:b.dataset.tts}).then(function(r){ b.disabled=false; b.textContent='지금 상태 확인'; if(!r.ok) throw new Error(r.error); say(r.text,/INBOX|COMPLETE/.test(r.status)); }).catch(function(e){ b.disabled=false; b.textContent='지금 상태 확인'; if(/^LOGIN/.test(e.message)) return logout(true); say(e.message); }); };});
     [].forEach.call(document.querySelectorAll('[data-dg]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.dg;})[0]; if(!c) return; var st=D.stores.filter(function(x){return x.code===c.store;})[0]||{}, no=String(st.daangn||'').replace(/\D/g,'');
-      var w=window.open('https://business.daangn.com/'+(no?'biz_accounts/'+no:''),'lf_daangn','width=540,height=880,left='+Math.max(0,screen.width-560)+',top=40');
+      var w=window.open(no?'https://bizprofile.daangn.com/biz_accounts/'+no+'/manager/posts':'https://business.daangn.com/profile/login','lf_daangn','width=540,height=880,left='+Math.max(0,screen.width-560)+',top=40');
       var t=c.text['당근 글']; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ say('당근 글을 복사했어요. 열린 당근 창에서 소식 쓰기를 누르고 붙여 넣은 뒤, 사진은 이 콘텐츠의 카드 이미지를 넣어 주세요.'+(w?'':' (창이 안 열렸으면 팝업 차단을 풀어 주세요.)'),true); },function(){ window.prompt('아래 글을 복사해 당근에 붙여 넣어 주세요',t); }); };});
     [].forEach.call(document.querySelectorAll('[data-repost]'),function(b){b.onclick=function(){ REPOST=REPOST===b.dataset.repost?'':b.dataset.repost; openW=b.dataset.repost; render(); };});
     [].forEach.call(document.querySelectorAll('[data-rp]'),function(b){b.onclick=function(){ var nm={ig:'인스타',th:'스레드',tt:'틱톡(초안)'}[b.dataset.rp]; if(!window.confirm(nm+'에 다시 올릴까요? 새 게시물이 하나 더 생기고, 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job=nm+' 다시 올리기'; REPOST=''; call({action:'admin_repost',id:b.dataset.id,ch:b.dataset.rp},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패/.test(D.notice)); }); b.textContent='올리는 중…'; };});
