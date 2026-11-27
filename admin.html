@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127m">
+<link rel="stylesheet" href="a.css?v=1127n">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127m"></script>
+<script src="cards.js?v=1127n"></script>
 <script>
 (function(){
   var K=null;
@@ -62,13 +62,18 @@
       }).catch(function(){ return {}; }).then(function(pic){ return (lfCards.logos?lfCards.logos('icons/'):Promise.resolve(null)).then(function(LG){ pic.logos=LG; return pic; }); }).then(function(pic){ return lfCards.render(c.pages,OPT={credit:!(st.plan&&st.plan.status==='유료')||/로컬피드/.test(st.name||''),logos:pic.logos,name:st.name||'',color:st.color||'',insta:st.insta||st.igName||'',kicker:st.industry||'',cover:pic.cover||null,last:pic.last||null}); }).then(function(L){ var urls=[], n=0;
         return (function up(){ if(n>=L.length){ // 카드를 다 올렸으면 블로그용 그림(대표 1장 + 본문 그림)을 그려 올린다
             var B=[]; try{ OPT.title=c.title; B=lfCards.blog?lfCards.blog(c.pages,OPT):[]; }catch(e){ B=[]; } var bu=[], bn=0;
-            var fin=function(){ return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')+(bu.length?'\n블로그용: '+bu.join(', '):'')}); };
+            var dgu='';
+            var fin=function(){ return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')+(bu.length?'\n블로그용: '+bu.join(', '):'')+(dgu?'\n당근용: '+dgu:'')}); };
+            // 당근 소식 대표 이미지(배너): 당근 글 맨 위의 "배너:" 줄로 그린다
+            var dgb=function(){ var P=lfCards.daangn?lfCards.daangn(c.text['당근 글'],c.title):null; if(!P||!c.text['당근 글']) return Promise.resolve(); J.set('당근 배너 올리는 중 '+(i+1)+'/'+ids.length);
+              var cvd; try{ cvd=lfCards.daangnBanner(P,{name:st.name||'',color:st.color||'',kicker:st.industry||'',dong:st.online?'':(st.dong||''),cover:OPT.cover||null}); }catch(e){ return Promise.resolve(); }
+              return _api({action:'admin_card',k:K,id:c.id,n:'d0',data:b64(cvd)}).then(function(r){ if(r.ok) dgu=r.url; },function(){}); };
             // 틱톡을 켠 매장이면 카드를 세로 영상으로 묶어 올린다(틱톡 초안용). 실패해도 카드는 만든 것으로 둔다.
             var tt=(D.ttStores||'').split(/[\s,]+/).indexOf(c.store)>=0&&lfCards.video;
             var vid=function(){ if(!tt) return fin(); J.set('틱톡용 영상 만드는 중 '+(i+1)+'/'+ids.length+' · 잠시만요');
               return lfCards.video(L,{color:st.color||''}).then(function(bl){ return new Promise(function(ok,no){ var fr=new FileReader(); fr.onload=function(){ ok(String(fr.result).split(',')[1]); }; fr.onerror=no; fr.readAsDataURL(bl); }); })
                 .then(function(b){ J.set('틱톡용 영상 올리는 중 '+(i+1)+'/'+ids.length); return _api({action:'admin_card',k:K,id:c.id,n:'v',data:b}); }).then(function(r){ if(!r.ok) throw new Error(r.error); },function(e){ TTERR=e.message; }).then(fin); };
-            return (function upb(){ if(bn>=B.length) return vid();
+            return (function upb(){ if(bn>=B.length) return dgb().then(vid);
               J.set('블로그 그림 올리는 중 '+(i+1)+'/'+ids.length+' · '+(bn+1)+'/'+B.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:'b'+bn,data:b64(B[bn])}).then(function(r){ if(!r.ok) throw new Error(r.error); bu.push(r.url); bn++; return upb(); }); })(); }
           J.set('카드 올리는 중 '+(i+1)+'/'+ids.length+' · '+(n+1)+'/'+L.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:n+1,data:b64(L[n])}).then(function(r){ if(!r.ok) throw new Error(r.error); urls.push(r.url); n++; return up(); }); })();
       }).then(function(r){ if(!r.ok) throw new Error(r.error); last=norm(r); D=last; i++; next(); }).catch(function(e){ BUSY.cards=false; J.end(); if(last) D=last; render(); say('카드 만들기가 멈췄어요: '+e.message); }); })(); }
@@ -127,7 +132,7 @@
     return ['콘텐츠 '+c+'개','ok'];
   }
   var FIL='', OPENG={}, SEL={}, Q='', ONLY=false, STAB='todo', REFS={}, editP=null;
-  var PK=[['인스타 이름',30,'인스타 → 프로필 편집 → 이름'],['인스타 소개',150,'인스타 → 프로필 편집 → 소개'],['스레드 소개',150,'스레드 → 프로필 편집 → 소개'],['틱톡 이름',30,'틱톡 → 프로필 편집 → 이름'],['틱톡 소개',80,'틱톡 → 프로필 편집 → 소개'],['당근 소개',200,'당근 비즈프로필 → 프로필 수정 → 소개'],['블로그 소개',200,'네이버 블로그 → 관리 → 블로그 정보 → 소개글']];
+  var PK=[['인스타 이름',30,'인스타 → 프로필 편집 → 이름'],['인스타 소개',150,'인스타 → 프로필 편집 → 소개'],['스레드 소개',150,'스레드 → 프로필 편집 → 소개'],['틱톡 이름',30,'틱톡 → 프로필 편집 → 이름'],['틱톡 소개',80,'틱톡 → 프로필 편집 → 소개'],['당근 소개',200,'당근비즈니스 → 비즈프로필 → 소개'],['당근 단골 혜택',40,'당근비즈니스 → 비즈프로필 → 업체 정보 → 단골 혜택'],['블로그 소개',200,'네이버 블로그 → 관리 → 블로그 정보 → 소개글']];
   // 이번 주 일정: 날짜별로 어느 매장의 무엇이 올라가는지
   function refsHtml(s){ var R=REFS[s.code];
     if(!R) return '<div class="box"><h2>레퍼런스</h2><p class="empty">불러오는 중…</p></div>';
@@ -283,6 +288,7 @@
       (c.ownerMemo?'<div class="caution" style="margin:8px 0"><b>매장 대표님 한 줄</b> '+esc(c.ownerMemo)+'</div>':'')+
       CH.map(function(h){ var k=c.id+'|'+h[0];
         return '<div class="wt"><div class="wh"><b>'+h[1]+'</b><span><button class="link" data-wedit="'+esc(k)+'">직접 고치기</button> · <button class="link" data-wrev="'+esc(c.id)+'" data-ch="'+esc(h[0])+'">말로 고치기</button></span></div>'+
+          (h[0]==='당근 글'&&c.dgMedia?'<small>당근 소식 맨 앞에 들어가는 배너예요. 글 맨 위의 "제목:", "배너:" 두 줄로 만들어요.</small><div class="wm"><img src="'+esc(c.dgMedia)+'" loading="lazy" alt=""></div>':'')+
           (h[0]==='블로그 글'&&c.blogMedia&&c.blogMedia.length?'<small>블로그용 그림: 첫 장은 대표 이미지, 나머지는 글의 [사진1], [사진2]… 자리에 차례로 넣어요.</small><div class="wm">'+c.blogMedia.map(function(u){return '<img src="'+esc(u)+'" loading="lazy" alt="">';}).join('')+'</div>':'')+
           (h[0]==='블로그 글'&&!c.text[h[0]]&&editW!==k?'<p>(아직 없음) <button class="link" data-blog="'+esc(c.id)+'">블로그 글 쓰기</button></p>':editW===k?'<textarea class="in" id="wT" style="min-height:'+(h[0]==='블로그 글'?'320':'130')+'px">'+esc(c.text[h[0]])+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-wsave="'+esc(k)+'">저장</button><button class="btn sm gray" data-wedit="">취소</button></div>':'<p>'+esc(c.text[h[0]]||'(없음)')+'</p>')+'</div>'; }).join('')+
       (!/^쇼츠/.test(c.form)?'<small><b>표지 사진</b> '+(c.art?'소재 이미지 사용 · ':'매장이 보낸 사진을 씁니다(없으면 글자만) · ')+'<button class="link" data-art="'+esc(c.id)+'">소재 이미지 주소 넣기</button></small>':'')+
@@ -362,14 +368,15 @@
       var c=D.works.filter(function(x){return x.id===id;})[0]; if(!c) return; var st=D.stores.filter(function(x){return x.code===c.store;})[0]||{}, no=(String(st.daangn||'').trim().match(/^(\d{5,12})(?!\d)/)||[])[1]||'';
       if(!no){ var v=(window.prompt((st.name||'')+'의 당근 비즈프로필 번호를 적어 주세요.\n당근비즈니스에서 그 프로필을 열면 왼쪽 위에 "ID 1234567"처럼 보이는 숫자입니다.','')||'').replace(/\D/g,''); if(v.length<5) return say('당근 프로필 번호가 있어야 올릴 수 있어요.'); return call({action:'admin_done',store:c.store,what:'daangn',value:v},b).then(function(){ say('번호를 저장했어요. 당근 올리기를 다시 눌러 주세요.',true); }); }
       if(!ext){ if(!window.confirm('이 크롬에는 당근 올리기 확장 프로그램이 없어요. 올리기 요청만 적어 둘까요? (확장을 설치하면 버튼 한 번으로 바로 올라갑니다.)')) return; b.dataset.job='당근 올리기'; return call({action:'admin_daangn',id:id,what:'request'},b).then(function(){ if(D&&D.notice) say(D.notice,true); }); }
-      if(!window.confirm((st.name||'')+' 당근 비즈프로필에 지금 올릴까요?\n\n제목: '+c.title+'\n사진 '+Math.min(10,c.media.length)+'장\n\n당근 창이 열리고 자동으로 올라갑니다. 올린 뒤에는 당근에서 직접 지워야 합니다.')) return;
+      var DG=lfCards.daangn(c.text['당근 글'],c.title);
+      if(!window.confirm((st.name||'')+' 당근 비즈프로필에 지금 올릴까요?\n\n제목: '+DG.title+'\n사진 '+Math.min(10,c.media.length+(c.dgMedia?1:0))+'장'+(c.dgMedia?' (맨 앞은 당근 배너)':' (당근 배너 없음 · 카드 다시 만들기를 하면 생겨요)')+'\n\n당근 창이 열리고 자동으로 올라갑니다. 올린 뒤에는 당근에서 직접 지워야 합니다.')) return;
       BUSY.dg=true; b.disabled=true; var J=job('당근 올리는 중 · 열린 당근 창을 닫지 마세요'), rid='d'+Date.now();
       var fin=function(res){ window.removeEventListener('message',on); clearTimeout(tm); BUSY.dg=false; J.end();
         if(res&&res.ok){ call({action:'admin_daangn',id:id,what:'done',memo:'확장 프로그램'}).then(function(){ say('당근에 올렸어요: '+c.title,true); }); }
         else { render(); say('당근 올리기: '+((res&&res.error)||'알 수 없는 이유로 멈췄어요.')+(res&&res.login?'':' 열린 당근 창을 확인해 주세요. 이미 올라갔는지 본 뒤에 다시 눌러 주세요.')); } };
       var on=function(e){ if(e.source!==window||e.origin!==location.origin||!e.data||e.data.lf!=='daangn_result'||e.data.rid!==rid) return; fin(e.data.res); };
       var tm=setTimeout(function(){ fin({ok:false,error:'2분이 지나도 끝나지 않았어요.'}); },120000);
-      window.addEventListener('message',on); window.postMessage({lf:'daangn_post',rid:rid,job:{profile:no,title:c.title,body:c.text['당근 글'],images:c.media.filter(function(u){return !/\.mp4/.test(u);}).slice(0,10)}},location.origin); };});
+      window.addEventListener('message',on); window.postMessage({lf:'daangn_post',rid:rid,job:{profile:no,title:DG.title,body:DG.body,images:(c.dgMedia?[c.dgMedia]:[]).concat(c.media.filter(function(u){return !/\.mp4/.test(u);})).slice(0,10)}},location.origin); };});
     [].forEach.call(document.querySelectorAll('[data-tts]'),function(b){b.onclick=function(){ b.disabled=true; b.textContent='확인 중…'; _api({action:'admin_tt_status',k:K,store:b.dataset.store,id:b.dataset.tts}).then(function(r){ b.disabled=false; b.textContent='지금 상태 확인'; if(!r.ok) throw new Error(r.error); say(r.text,/INBOX|COMPLETE/.test(r.status)); }).catch(function(e){ b.disabled=false; b.textContent='지금 상태 확인'; if(/^LOGIN/.test(e.message)) return logout(true); say(e.message); }); };});
     [].forEach.call(document.querySelectorAll('[data-repost]'),function(b){b.onclick=function(){ REPOST=REPOST===b.dataset.repost?'':b.dataset.repost; openW=b.dataset.repost; render(); };});
     [].forEach.call(document.querySelectorAll('[data-rp]'),function(b){b.onclick=function(){ var nm={ig:'인스타',th:'스레드',tt:'틱톡(초안)'}[b.dataset.rp]; if(!window.confirm(nm+'에 다시 올릴까요? 새 게시물이 하나 더 생기고, 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job=nm+' 다시 올리기'; REPOST=''; call({action:'admin_repost',id:b.dataset.id,ch:b.dataset.rp},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패/.test(D.notice)); }); b.textContent='올리는 중…'; };});

@@ -127,7 +127,27 @@
           while(n<N&&enc.encodeQueueSize<4){ frame(Math.min(n*1000/FPS,L.length*per-1)); var vf=new VideoFrame(cv,{timestamp:Math.round(n*1e6/FPS),duration:Math.round(1e6/FPS)}); enc.encode(vf,{keyFrame:n%FPS===0}); vf.close(); n++; }
           if(n<N) return setTimeout(step,0);
           enc.flush().then(function(){ mux.finalize(); res(new Blob([mux.target.buffer],{type:'video/mp4'})); },rej); })(); }); }); }
+  // 당근 글 나누기: 맨 위 "제목: …", "배너: 큰 글 | 강조 | 혜택 · 혜택" 두 줄과 본문
+  function dgParts(text,fallbackTitle){ var L=String(text||'').replace(/\r/g,'').split('\n'), title='', ban=null, rest=[];
+    L.forEach(function(l){ var m=l.match(/^\s*제목\s*[:：]\s*(.+)$/), b=l.match(/^\s*배너\s*[:：]\s*(.+)$/);
+      if(m&&!title&&!rest.join('').trim()) title=m[1].trim(); else if(b&&!ban&&!rest.join('').trim()){ var p=b[1].split(/\s*\|\s*/); ban={big:(p[0]||'').trim(),em:(p[1]||'').trim(),chips:(p[2]||'').split(/\s*[·,]\s*/).map(function(x){return x.trim();}).filter(Boolean).slice(0,3)}; } else rest.push(l); });
+    return {title:title||fallbackTitle||'',banner:ban,body:rest.join('\n').replace(/^\n+|\n+$/g,'')}; }
+  // 당근 소식 대표 이미지 1080×1080: 위 이름표, 큰 글, 강조 한마디(흰 상자), 혜택 조각들, 아래 문의 띠
+  function dgBanner(P,o){ o=o||{}; var S=1080, cv=document.createElement('canvas'); cv.width=S; cv.height=S; var ctx=cv.getContext('2d'), col=hex(o.color), M=84, B=P.banner||{big:P.title,em:'',chips:[]};
+    ctx.fillStyle=col; ctx.fillRect(0,0,S,S);
+    if(o.cover){ var im=o.cover, s=Math.max(S/im.width,S/im.height), w=im.width*s, h=im.height*s; ctx.save(); ctx.filter='contrast(1.06) saturate(1.05)'; ctx.drawImage(im,(S-w)/2,(S-h)/2,w,h); ctx.restore(); ctx.save(); ctx.globalAlpha=0.82; ctx.fillStyle=col; ctx.fillRect(0,0,S,S); ctx.restore(); }
+    else { ctx.fillStyle='rgba(255,255,255,.10)'; ctx.beginPath(); ctx.arc(S-70,150,300,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(60,S-260,220,0,7); ctx.fill(); }
+    ctx.textBaseline='top'; var y=M;
+    var kick=[o.dong,o.kicker].filter(Boolean).join(' · ')||o.name||''; if(kick){ ctx.font='700 40px '+F; var kw=ctx.measureText(kick).width+64; ctx.fillStyle='rgba(255,255,255,.2)'; rr(ctx,M,y,kw,76,38); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(kick,M+32,y+18); }
+    y+=130;
+    var big=fit(ctx,B.big||P.title,S-M*2,3,[132,116,100,88,76],'800'), lh=Math.round(big.size*1.2); ctx.fillStyle='#fff'; ctx.font='800 '+big.size+'px '+F; lines(ctx,big.lines,M,y,lh); y+=lh*big.lines.length+36;
+    if(B.em){ var em=fit(ctx,B.em,S-M*2-88,1,[92,80,68,58,50],'800'); ctx.font='800 '+em.size+'px '+F; var ew=Math.min(S-M*2,ctx.measureText(em.lines[0]).width+88), eh=em.size+56; ctx.fillStyle='#fff'; rr(ctx,M,y,ew,eh,28); ctx.fill(); ctx.fillStyle=col; ctx.fillText(em.lines[0],M+44,y+26); y+=eh+34; }
+    var x=M; ctx.font='700 38px '+F; (B.chips||[]).forEach(function(t){ var w2=ctx.measureText('✓ '+t).width+56; if(x+w2>S-M){ x=M; y+=88; } ctx.fillStyle='rgba(255,255,255,.18)'; rr(ctx,x,y,w2,72,36); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText('✓ '+t,x+28,y+17); x+=w2+16; });
+    ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(0,S-150,S,150); ctx.fillStyle='#fff'; ctx.font='800 50px '+F; ctx.fillText('당근 채팅으로 문의하기',M,S-112);
+    ctx.font='600 34px '+F; ctx.textAlign='right'; ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillText(o.name||'',S-M,S-102); ctx.textAlign='left';
+    return cv; }
   window.lfCards={ parse:parse,
+    daangn:dgParts, daangnBanner:dgBanner,
     video:video,
     blog:function(pages,o){ o=o||{}; var P=parse(pages); if(P.length<2) return Promise.resolve([]); var mid=P.slice(1,P.length>2?P.length-1:P.length).slice(0,4);
       return [blogThumb(P,o)].concat(mid.map(function(p,i){ return blogBody(p,i,o); })); },

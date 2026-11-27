@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>로컬피드 시작하기</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127d">
+<link rel="stylesheet" href="a.css?v=1127n">
 </head>
 <body>
 <div class="phone">
@@ -255,11 +255,11 @@
     return html;
   }
   // 채널 프로필 문구: 로컬피드가 써서 보낸 것을 복사해 각 채널 프로필에 붙인다
-  var PKS=[['인스타 이름','인스타그램 앱 → 내 프로필 → 프로필 편집 → 이름'],['인스타 소개','인스타그램 앱 → 내 프로필 → 프로필 편집 → 소개'],['스레드 소개','스레드 앱 → 내 프로필 → 프로필 편집 → 소개'],['틱톡 이름','틱톡 앱 → 프로필 → 프로필 편집 → 이름'],['틱톡 소개','틱톡 앱 → 프로필 → 프로필 편집 → 소개'],['당근 소개','당근 → 나의 당근 → 비즈프로필 관리 → 프로필 수정'],['블로그 소개','네이버 블로그 → 관리 → 기본 설정 → 블로그 정보 → 소개글']];
+  var PKS=[['인스타 이름','인스타그램 앱 → 내 프로필 → 프로필 편집 → 이름'],['인스타 소개','인스타그램 앱 → 내 프로필 → 프로필 편집 → 소개'],['스레드 소개','스레드 앱 → 내 프로필 → 프로필 편집 → 소개'],['틱톡 이름','틱톡 앱 → 프로필 → 프로필 편집 → 이름'],['틱톡 소개','틱톡 앱 → 프로필 → 프로필 편집 → 소개'],['당근 소개','당근 → 나의 당근 → 비즈프로필 관리 → 소개'],['당근 단골 혜택','당근 → 나의 당근 → 비즈프로필 관리 → 업체 정보 → 단골 혜택'],['블로그 소개','네이버 블로그 → 관리 → 기본 설정 → 블로그 정보 → 소개글']];
   function profileCard(){ var P=S.profile; if(!P||!P['인스타 소개']) return '';
     return '<details class="card fold"><summary><span><b>채널 프로필 문구</b><small>복사해서 각 채널 프로필에 붙여 주세요 · 한 번만 하면 돼요</small></span><em>보기</em></summary>'+
       (P['프로필 이미지']?'<div class="wt"><div class="wh"><b>프로필 이미지</b><a class="link" href="'+esc(P['프로필 이미지'])+'" target="_blank" rel="noopener">크게 열기</a></div><img src="'+esc(P['프로필 이미지'])+'" alt="" style="width:120px;height:120px;border-radius:50%;object-fit:cover;display:block;margin:6px 0"><small style="display:block;color:var(--s);font-size:12px">크게 연 뒤 길게 눌러 저장하고, 인스타·스레드·틱톡·당근 프로필 사진으로 같은 이미지를 올려 주세요.</small></div>':'')+
-      PKS.map(function(x){ var v=P[x[0]]; return v?'<div class="wt"><div class="wh"><b>'+x[0]+'</b><button class="link" data-copyp="'+esc(x[0])+'">복사</button></div><p>'+esc(v)+'</p><small style="display:block;color:var(--s);font-size:12px">붙이는 곳: '+x[1]+'</small></div>':''; }).join('')+'</details>';
+      PKS.map(function(x){ var v=P[x[0]]; return v?'<div class="wt"><div class="wh"><b>'+x[0]+'</b><button class="link" data-copyp="'+esc(x[0])+'">복사</button></div><p>'+esc(v)+'</p><small style="display:block;color:var(--s);font-size:12px">붙이는 곳: '+x[1]+'</small></div>':''; }).join('')+'<div class="wt"><div class="wh"><b>당근 비즈프로필 채우기</b></div><p>소식을 올려도 프로필이 비어 있으면 문의로 이어지지 않아요. 한 번만 채워 두세요.\n① 프로필 사진: 위의 프로필 이미지\n② 소개와 단골 혜택: 위 문구\n③ 영업 시간과 가격(메뉴): 실제 그대로\n④ 사진: 가게나 작업 사진 5장 이상\n⑤ 채팅 받기 켜기</p></div>'+'</details>';
   }
   function md(d){var p=String(d||'').split('-');return p.length===3?(+p[1])+'월 '+(+p[2])+'일':'';}
   function planCard(){
