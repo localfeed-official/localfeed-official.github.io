@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1126n">
+<link rel="stylesheet" href="a.css?v=1127a">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1126n"></script>
+<script src="cards.js?v=1127a"></script>
 <script>
 (function(){
   var K=null;
@@ -46,6 +46,7 @@
         return (function blog(n){ if(n>=need.length) return null; J.set('블로그 글 쓰는 중 '+(i+1)+'/'+rows.length);
           return _api({action:'admin_make_blog',k:K,id:need[n]}).then(function(r2){ if(r2.ok){ D=norm(r2); render(); } return blog(n+1); }); })(0);
       }).then(function(){ i++; next(); }).catch(function(e){ stop((i+1)+'번째에서 멈췄어요: '+e.message+' (이미 만든 것은 남아 있어요. 다시 누르면 남은 것부터 만듭니다)'); }); })(); }
+  var OPT={};
   function makeCards(ids){ if(!ids.length||BUSY.cards) return; BUSY.cards=true; var i=0, last=null, J=job('카드 그리기 시작');
     function b64(cv){ return cv.toDataURL('image/jpeg',0.9).split(',')[1]; }
     (function next(){ if(i>=ids.length){ BUSY.cards=false; J.end(); if(last) D=last; render(); return; }
@@ -58,8 +59,11 @@
         var get=function(s){ if(!s) return Promise.resolve(null); return _api({action:'admin_art_data',k:K,id:c.id,src:s}).then(function(r){ return r.ok?lfCards.load(r.mime,r.data):null; }).catch(function(){return null;}); };
         J.set('사진 받는 중 '+(i+1)+'/'+ids.length);
         return get(src).then(function(c1){ return get(src2).then(function(c2){ return {cover:c1,last:c2}; }); });
-      }).catch(function(){ return {}; }).then(function(pic){ return (lfCards.logos?lfCards.logos('icons/'):Promise.resolve(null)).then(function(LG){ pic.logos=LG; return pic; }); }).then(function(pic){ return lfCards.render(c.pages,{credit:!(st.plan&&st.plan.status==='유료'),logos:pic.logos,name:st.name||'',color:st.color||'',insta:st.insta||st.igName||'',kicker:st.industry||'',cover:pic.cover||null,last:pic.last||null}); }).then(function(L){ var urls=[], n=0;
-        return (function up(){ if(n>=L.length) return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')});
+      }).catch(function(){ return {}; }).then(function(pic){ return (lfCards.logos?lfCards.logos('icons/'):Promise.resolve(null)).then(function(LG){ pic.logos=LG; return pic; }); }).then(function(pic){ return lfCards.render(c.pages,OPT={credit:!(st.plan&&st.plan.status==='유료')||/로컬피드/.test(st.name||''),logos:pic.logos,name:st.name||'',color:st.color||'',insta:st.insta||st.igName||'',kicker:st.industry||'',cover:pic.cover||null,last:pic.last||null}); }).then(function(L){ var urls=[], n=0;
+        return (function up(){ if(n>=L.length){ // 카드를 다 올렸으면 블로그용 그림(대표 1장 + 본문 그림)을 그려 올린다
+            var B=[]; try{ OPT.title=c.title; B=lfCards.blog?lfCards.blog(c.pages,OPT):[]; }catch(e){ B=[]; } var bu=[], bn=0;
+            return (function upb(){ if(bn>=B.length) return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')+(bu.length?'\n블로그용: '+bu.join(', '):'')});
+              J.set('블로그 그림 올리는 중 '+(i+1)+'/'+ids.length+' · '+(bn+1)+'/'+B.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:'b'+bn,data:b64(B[bn])}).then(function(r){ if(!r.ok) throw new Error(r.error); bu.push(r.url); bn++; return upb(); }); })(); }
           J.set('카드 올리는 중 '+(i+1)+'/'+ids.length+' · '+(n+1)+'/'+L.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:n+1,data:b64(L[n])}).then(function(r){ if(!r.ok) throw new Error(r.error); urls.push(r.url); n++; return up(); }); })();
       }).then(function(r){ if(!r.ok) throw new Error(r.error); last=norm(r); D=last; i++; next(); }).catch(function(e){ BUSY.cards=false; J.end(); if(last) D=last; render(); say('카드 만들기가 멈췄어요: '+e.message); }); })(); }
   var JOBS={}, jn=0;
@@ -273,6 +277,7 @@
       (c.ownerMemo?'<div class="caution" style="margin:8px 0"><b>매장 대표님 한 줄</b> '+esc(c.ownerMemo)+'</div>':'')+
       CH.map(function(h){ var k=c.id+'|'+h[0];
         return '<div class="wt"><div class="wh"><b>'+h[1]+'</b><span><button class="link" data-wedit="'+esc(k)+'">직접 고치기</button> · <button class="link" data-wrev="'+esc(c.id)+'" data-ch="'+esc(h[0])+'">말로 고치기</button></span></div>'+
+          (h[0]==='블로그 글'&&c.blogMedia&&c.blogMedia.length?'<small>블로그용 그림: 첫 장은 대표 이미지, 나머지는 글의 [사진1], [사진2]… 자리에 차례로 넣어요.</small><div class="wm">'+c.blogMedia.map(function(u){return '<img src="'+esc(u)+'" loading="lazy" alt="">';}).join('')+'</div>':'')+
           (h[0]==='블로그 글'&&!c.text[h[0]]&&editW!==k?'<p>(아직 없음) <button class="link" data-blog="'+esc(c.id)+'">블로그 글 쓰기</button></p>':editW===k?'<textarea class="in" id="wT" style="min-height:'+(h[0]==='블로그 글'?'320':'130')+'px">'+esc(c.text[h[0]])+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-wsave="'+esc(k)+'">저장</button><button class="btn sm gray" data-wedit="">취소</button></div>':'<p>'+esc(c.text[h[0]]||'(없음)')+'</p>')+'</div>'; }).join('')+
       (!/^쇼츠/.test(c.form)?'<small><b>표지 사진</b> '+(c.art?'소재 이미지 사용 · ':'매장이 보낸 사진을 씁니다(없으면 글자만) · ')+'<button class="link" data-art="'+esc(c.id)+'">소재 이미지 주소 넣기</button></small>':'')+
       (c.check?'<small><b>검수</b> '+esc(c.check)+'</small>':'')+(c.memo?'<small><b>메모</b> '+esc(c.memo)+'</small>':'')+
@@ -341,7 +346,7 @@
           var t=L[i]; J.set(label+' '+(i+1)+'/'+L.length+' · '+t.name);
           var body=kind==='profile'?{action:'admin_profile',what:'make',store:t.store}:kind==='research'?{action:'admin_done',what:'research',store:t.store}:kind==='plan_make'?{action:'admin_plan_make',store:t.store,week:t.week||''}:{action:'admin_plan_week',store:t.store,week:t.week};
           body.k=K; _api(body).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); }).catch(function(e){ fail.push(t.name+': '+e.message); }).then(function(){ i++; render(); next(); }); })(); };});
-    [].forEach.call(document.querySelectorAll('[data-pubnow]'),function(b){b.onclick=function(){ if(!window.confirm('인스타와 스레드에 지금 올릴까요? 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job='지금 올리기'; call({action:'admin_publish',id:b.dataset.pubnow},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패|없습니다/.test(D.notice)); }); b.textContent='올리는 중… 1분쯤'; };});
+    [].forEach.call(document.querySelectorAll('[data-pubnow]'),function(b){b.onclick=function(){ if(!window.confirm('인스타와 스레드'+(D.ttReady&&(D.ttStores||'').split(/[\s,]+/).indexOf((D.works.filter(function(x){return x.id===b.dataset.pubnow;})[0]||{}).store)>=0?'(틱톡은 초안으로)':'')+'에 지금 올릴까요? 당근과 블로그는 자동으로 올라가지 않아요. 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job='지금 올리기'; call({action:'admin_publish',id:b.dataset.pubnow},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패|없습니다/.test(D.notice)); }); b.textContent='올리는 중… 1분쯤'; };});
     [].forEach.call(document.querySelectorAll('[data-art]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.art})[0]; var v=window.prompt('표지에 깔 이미지 주소를 넣어 주세요. 두 개면 쉼표로 나눕니다(둘째는 마지막 장).\n비우면 매장 사진을 씁니다.',c?c.art:''); if(v===null) return; var id=b.dataset.art; b.dataset.job='소재 이미지 저장'; call({action:'admin_content',id:id,what:'edit',ch:'소재 이미지',value:v.trim()},b).then(function(){ makeCards([id]); }); };});
     [].forEach.call(document.querySelectorAll('[data-wdo]'),function(b){b.onclick=function(){ var w=D.works.filter(function(x){return x.id===b.dataset.id})[0]; if(b.dataset.wdo==='send'&&w&&!/^쇼츠/.test(w.form)&&!w.media.length&&!window.confirm('카드 이미지가 아직 없어요. 글만 먼저 매장에 보낼까요?\n(취소하고 "카드 만들기"를 먼저 누르는 것을 권해요)')) return; call({action:'admin_content',id:b.dataset.id,what:b.dataset.wdo},b); };});
     [].forEach.call(document.querySelectorAll('[data-wedit]'),function(b){b.onclick=function(){ editW=b.dataset.wedit||null; if(editW) openW=editW.split('|')[0]; render(); };});

@@ -83,7 +83,32 @@
     var lh=f.size*1.16, y=S/2-(f.lines.length-1)*lh/2; f.lines.forEach(function(t,i){ ctx.fillText(t,S/2,y+i*lh); });
     if(o.sub){ ctx.font='600 44px '+F; ctx.globalAlpha=0.85; ctx.fillText(String(o.sub).slice(0,14),S/2,y+(f.lines.length-1)*lh+f.size*0.62+44); ctx.globalAlpha=1; }
     return cv; }
+  // 블로그용 그림: 대표 이미지 1장(1080×1080, 제목) + 본문 그림(1200×800, 가운데 장 내용을 가로로) 최대 4장
+  function blogThumb(P,o){ var S=1080, cv=document.createElement('canvas'); cv.width=S; cv.height=S; var ctx=cv.getContext('2d'), col=hex(o.color), M=96;
+    ctx.fillStyle=col; ctx.fillRect(0,0,S,S);
+    if(o.cover){ var im=o.cover, s=Math.max(S/im.width,S/im.height), w=im.width*s, h=im.height*s; ctx.save(); ctx.filter='contrast(1.08) saturate(1.06) brightness(1.03)'; ctx.drawImage(im,(S-w)/2,(S-h)/2,w,h); ctx.restore();
+      var g=ctx.createLinearGradient(0,0,0,S); g.addColorStop(0,'rgba(0,0,0,.30)'); g.addColorStop(0.4,'rgba(0,0,0,.25)'); g.addColorStop(1,'rgba(0,0,0,.78)'); ctx.fillStyle=g; ctx.fillRect(0,0,S,S); }
+    else { ctx.fillStyle='rgba(255,255,255,.12)'; ctx.beginPath(); ctx.arc(S-60,S-40,320,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(110,-70,280,0,7); ctx.fill(); }
+    ctx.textBaseline='top'; ctx.fillStyle='rgba(255,255,255,.95)'; ctx.font='700 40px '+F; ctx.fillText(o.name||'',M,M);
+    var t=fit(ctx,o.title||P[0].text.split(/\s*\|\s*/)[0],S-M*2,4,[120,104,92,80,68],'800'), lh=Math.round(t.size*1.26), y=S-M-60-lh*t.lines.length;
+    ctx.fillStyle='#fff'; ctx.font='800 '+t.size+'px '+F; lines(ctx,t.lines,M,y,lh);
+    if(o.kicker){ ctx.font='600 38px '+F; ctx.fillStyle='rgba(255,255,255,.88)'; ctx.fillText(o.kicker,M,S-M-34); }
+    return cv; }
+  function blogBody(p,i,o){ var BW=1200, BH=800, cv=document.createElement('canvas'); cv.width=BW; cv.height=BH; var ctx=cv.getContext('2d'), col=hex(o.color), X=96, y=92;
+    ctx.fillStyle='#F2F4F6'; ctx.fillRect(0,0,BW,BH); ctx.fillStyle='#fff'; rr(ctx,36,36,BW-72,BH-72,44); ctx.fill(); ctx.textBaseline='top';
+    var icons=(o.logos&&p.label)?logosFor(p.label,o.logos):[], lx=X;
+    icons.forEach(function(im){ ctx.fillStyle='#F2F4F6'; rr(ctx,lx,y,96,96,26); ctx.fill(); var s=Math.min(62/im.width,62/im.height), w=im.width*s, h=im.height*s; ctx.drawImage(im,lx+(96-w)/2,y+(96-h)/2,w,h); lx+=112; });
+    if(p.label){ ctx.fillStyle=col; ctx.font='800 56px '+F; ctx.fillText(p.label,lx+(icons.length?12:0),y+(icons.length?18:6)); }
+    else { ctx.fillStyle=col; ctx.font='800 56px '+F; ctx.fillText(String(i+1),X,y+6); }
+    y+=icons.length?136:96; ctx.fillStyle=col; rr(ctx,X,y,72,8,4); ctx.fill(); y+=44;
+    var parts=p.text.split(/\s*\|\s*/), head=parts[0], sub=parts.slice(1).join(' ');
+    ctx.fillStyle='#191F28'; var b=fit(ctx,head,BW-X*2,3,[92,82,72,62,54],'800'), lh=Math.round(b.size*1.28); ctx.font='800 '+b.size+'px '+F; lines(ctx,b.lines,X,y,lh); y+=lh*b.lines.length+26;
+    if(sub){ ctx.fillStyle='#4E5968'; var sb=fit(ctx,sub,BW-X*2,3,[46,42,38,34],'500'); ctx.font='500 '+sb.size+'px '+F; lines(ctx,sb.lines,X,y,Math.round(sb.size*1.5)); }
+    ctx.font='600 28px '+F; ctx.fillStyle='#8B95A1'; ctx.fillText(o.name||'',X,BH-104);
+    return cv; }
   window.lfCards={ parse:parse,
+    blog:function(pages,o){ o=o||{}; var P=parse(pages); if(P.length<2) return Promise.resolve([]); var mid=P.slice(1,P.length>2?P.length-1:P.length).slice(0,4);
+      return [blogThumb(P,o)].concat(mid.map(function(p,i){ return blogBody(p,i,o); })); },
     profile:function(o){ var ready=document.fonts&&document.fonts.load?document.fonts.load("800 160px 'Gothic A1'").catch(function(){}):Promise.resolve(); return ready.then(function(){ return profile(o||{}); }); },
     // 채널 로고(대표님이 준 파일 그대로)를 한 번 읽어 둔다. 못 읽은 것은 빼고 글자만 쓴다.
     logos:function(base){ var out={}; return Promise.all(CH.concat([[null,'logo.svg']]).map(function(x){ return new Promise(function(res){ var im=new Image(); im.onload=function(){ out[x[1]]=im; res(); }; im.onerror=function(){ res(); }; im.src=(base||'icons/')+x[1]; }); })).then(function(){ return out; }); },

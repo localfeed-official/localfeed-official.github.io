@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>로컬피드 시작하기</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1126n">
+<link rel="stylesheet" href="a.css?v=1127a">
 </head>
 <body>
 <div class="phone">
@@ -237,7 +237,7 @@
   var fixW=null, CHS=[['인스타 캡션','인스타그램'],['스레드 글','스레드'],['당근 글','당근'],['틱톡 제목·설명','틱톡'],['블로그 글','네이버 블로그']];
   function workItem(c,open){ var okd=/^확정|^게시/.test(c.status), fx=/^수정/.test(c.status), d=String(c.date).split('-'), wait=/^매장 확인/.test(c.status);
     var texts=CHS.filter(function(h){return c.text[h[0]];});
-    var one=function(h){ return '<div class="wt"><div class="wh"><b>'+h[1]+'</b>'+(h[0]==='블로그 글'?'<button class="link" data-copyw="'+esc(c.id)+'">글 복사</button>':'')+'</div><p>'+esc(c.text[h[0]])+'</p></div>'; };
+    var one=function(h){ return '<div class="wt"><div class="wh"><b>'+h[1]+'</b>'+(h[0]==='블로그 글'?'<button class="link" data-copyw="'+esc(c.id)+'">글 복사</button>':'')+'</div>'+(h[0]==='블로그 글'&&c.blogMedia&&c.blogMedia.length?'<small style="display:block;color:var(--s);font-size:12px;margin:4px 0">블로그용 그림이에요. 눌러서 크게 연 뒤 길게 눌러 저장하세요. 첫 장은 대표 이미지, 나머지는 글의 [사진1], [사진2]… 자리에 차례로 넣어요.</small><div class="wm">'+c.blogMedia.map(function(u){return '<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy" alt=""></a>';}).join('')+'</div>':'')+'<p>'+esc(c.text[h[0]])+'</p></div>'; };
     return '<details class="pl"'+(open?' open':'')+'><summary><span class="pf">'+(+d[1])+'월 '+(+d[2])+'일에 올라가요</span><b>'+esc(c.title)+'</b><span class="ps">'+(/^게시 완료/.test(c.status)?'<span class="chip ok">올라갔어요</span>':okd?'<span class="chip ok">좋아요</span>':fx?'<span class="chip warn">고치는 중</span>':'<span class="chip soft">확인 전</span>')+'</span></summary>'+
       (c.media.length?'<div class="wm">'+c.media.map(function(u){return /\.mp4($|\?)/.test(u)?'<video src="'+esc(u)+'" controls preload="none"></video>':'<img src="'+esc(u)+'" loading="lazy" alt="">';}).join('')+'</div>':'')+
       (texts.length?one(texts[0]):'')+
