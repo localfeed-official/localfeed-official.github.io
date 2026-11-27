@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127n">
+<link rel="stylesheet" href="a.css?v=1127p">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127n"></script>
+<script src="cards.js?v=1127p"></script>
 <script>
 (function(){
   var K=null;
@@ -61,7 +61,7 @@
         return get(src).then(function(c1){ return get(src2).then(function(c2){ return {cover:c1,last:c2}; }); });
       }).catch(function(){ return {}; }).then(function(pic){ return (lfCards.logos?lfCards.logos('icons/'):Promise.resolve(null)).then(function(LG){ pic.logos=LG; return pic; }); }).then(function(pic){ return lfCards.render(c.pages,OPT={credit:!(st.plan&&st.plan.status==='유료')||/로컬피드/.test(st.name||''),logos:pic.logos,name:st.name||'',color:st.color||'',insta:st.insta||st.igName||'',kicker:st.industry||'',cover:pic.cover||null,last:pic.last||null}); }).then(function(L){ var urls=[], n=0;
         return (function up(){ if(n>=L.length){ // 카드를 다 올렸으면 블로그용 그림(대표 1장 + 본문 그림)을 그려 올린다
-            var B=[]; try{ OPT.title=c.title; B=lfCards.blog?lfCards.blog(c.pages,OPT):[]; }catch(e){ B=[]; } var bu=[], bn=0;
+            var B=[]; try{ OPT.title=c.title; OPT.blogText=c.text['블로그 글']||''; B=lfCards.blog?lfCards.blog(c.pages,OPT):[]; }catch(e){ B=[]; } var bu=[], bn=0;
             var dgu='';
             var fin=function(){ return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')+(bu.length?'\n블로그용: '+bu.join(', '):'')+(dgu?'\n당근용: '+dgu:'')}); };
             // 당근 소식 대표 이미지(배너): 당근 글 맨 위의 "배너:" 줄로 그린다
@@ -71,7 +71,8 @@
             // 틱톡을 켠 매장이면 카드를 세로 영상으로 묶어 올린다(틱톡 초안용). 실패해도 카드는 만든 것으로 둔다.
             var tt=(D.ttStores||'').split(/[\s,]+/).indexOf(c.store)>=0&&lfCards.video;
             var vid=function(){ if(!tt) return fin(); J.set('틱톡용 영상 만드는 중 '+(i+1)+'/'+ids.length+' · 잠시만요');
-              return lfCards.video(L,{color:st.color||''}).then(function(bl){ return new Promise(function(ok,no){ var fr=new FileReader(); fr.onload=function(){ ok(String(fr.result).split(',')[1]); }; fr.onerror=no; fr.readAsDataURL(bl); }); })
+              var TL=[]; try{ TL=lfCards.ttFrames?lfCards.ttFrames(c.text['틱톡 제목·설명'],{name:st.name||'',color:st.color||'',cover:OPT.cover||null}):[]; }catch(e){ TL=[]; }
+              return lfCards.video(TL.length?TL:L,{color:st.color||''})   /* 틱톡 글에 장면 대본이 있으면 틱톡 전용 영상으로, 없으면 카드로 */.then(function(bl){ return new Promise(function(ok,no){ var fr=new FileReader(); fr.onload=function(){ ok(String(fr.result).split(',')[1]); }; fr.onerror=no; fr.readAsDataURL(bl); }); })
                 .then(function(b){ J.set('틱톡용 영상 올리는 중 '+(i+1)+'/'+ids.length); return _api({action:'admin_card',k:K,id:c.id,n:'v',data:b}); }).then(function(r){ if(!r.ok) throw new Error(r.error); },function(e){ TTERR=e.message; }).then(fin); };
             return (function upb(){ if(bn>=B.length) return dgb().then(vid);
               J.set('블로그 그림 올리는 중 '+(i+1)+'/'+ids.length+' · '+(bn+1)+'/'+B.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:'b'+bn,data:b64(B[bn])}).then(function(r){ if(!r.ok) throw new Error(r.error); bu.push(r.url); bn++; return upb(); }); })(); }
@@ -289,7 +290,7 @@
       CH.map(function(h){ var k=c.id+'|'+h[0];
         return '<div class="wt"><div class="wh"><b>'+h[1]+'</b><span><button class="link" data-wedit="'+esc(k)+'">직접 고치기</button> · <button class="link" data-wrev="'+esc(c.id)+'" data-ch="'+esc(h[0])+'">말로 고치기</button></span></div>'+
           (h[0]==='당근 글'&&c.dgMedia?'<small>당근 소식 맨 앞에 들어가는 배너예요. 글 맨 위의 "제목:", "배너:" 두 줄로 만들어요.</small><div class="wm"><img src="'+esc(c.dgMedia)+'" loading="lazy" alt=""></div>':'')+
-          (h[0]==='블로그 글'&&c.blogMedia&&c.blogMedia.length?'<small>블로그용 그림: 첫 장은 대표 이미지, 나머지는 글의 [사진1], [사진2]… 자리에 차례로 넣어요.</small><div class="wm">'+c.blogMedia.map(function(u){return '<img src="'+esc(u)+'" loading="lazy" alt="">';}).join('')+'</div>':'')+
+          (h[0]==='블로그 글'&&c.blogMedia&&c.blogMedia.length?'<small>블로그용 그림: 첫 장은 대표 이미지, 나머지는 글의 [그림1], [그림2]… 자리에 차례로 넣어요.</small><div class="wm">'+c.blogMedia.map(function(u){return '<img src="'+esc(u)+'" loading="lazy" alt="">';}).join('')+'</div>':'')+
           (h[0]==='블로그 글'&&!c.text[h[0]]&&editW!==k?'<p>(아직 없음) <button class="link" data-blog="'+esc(c.id)+'">블로그 글 쓰기</button></p>':editW===k?'<textarea class="in" id="wT" style="min-height:'+(h[0]==='블로그 글'?'320':'130')+'px">'+esc(c.text[h[0]])+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-wsave="'+esc(k)+'">저장</button><button class="btn sm gray" data-wedit="">취소</button></div>':'<p>'+esc(c.text[h[0]]||'(없음)')+'</p>')+'</div>'; }).join('')+
       (!/^쇼츠/.test(c.form)?'<small><b>표지 사진</b> '+(c.art?'소재 이미지 사용 · ':'매장이 보낸 사진을 씁니다(없으면 글자만) · ')+'<button class="link" data-art="'+esc(c.id)+'">소재 이미지 주소 넣기</button></small>':'')+
       (c.check?'<small><b>검수</b> '+esc(c.check)+'</small>':'')+(c.memo?'<small><b>메모</b> '+esc(c.memo)+'</small>':'')+

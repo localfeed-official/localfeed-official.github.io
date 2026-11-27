@@ -140,16 +140,41 @@
     ctx.textBaseline='top'; var y=M;
     var kick=[o.dong,o.kicker].filter(Boolean).join(' · ')||o.name||''; if(kick){ ctx.font='700 40px '+F; var kw=ctx.measureText(kick).width+64; ctx.fillStyle='rgba(255,255,255,.2)'; rr(ctx,M,y,kw,76,38); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText(kick,M+32,y+18); }
     y+=130;
-    var big=fit(ctx,B.big||P.title,S-M*2,3,[132,116,100,88,76],'800'), lh=Math.round(big.size*1.2); ctx.fillStyle='#fff'; ctx.font='800 '+big.size+'px '+F; lines(ctx,big.lines,M,y,lh); y+=lh*big.lines.length+36;
+    var big=wordFit(ctx,B.big||P.title,S-M*2,3,[132,116,100,88,76,66],'800'), lh=Math.round(big.size*1.2); ctx.fillStyle='#fff'; ctx.font='800 '+big.size+'px '+F; lines(ctx,big.lines,M,y,lh); y+=lh*big.lines.length+36;
     if(B.em){ var em=fit(ctx,B.em,S-M*2-88,1,[92,80,68,58,50],'800'); ctx.font='800 '+em.size+'px '+F; var ew=Math.min(S-M*2,ctx.measureText(em.lines[0]).width+88), eh=em.size+56; ctx.fillStyle='#fff'; rr(ctx,M,y,ew,eh,28); ctx.fill(); ctx.fillStyle=col; ctx.fillText(em.lines[0],M+44,y+26); y+=eh+34; }
     var x=M; ctx.font='700 38px '+F; (B.chips||[]).forEach(function(t){ var w2=ctx.measureText('✓ '+t).width+56; if(x+w2>S-M){ x=M; y+=88; } ctx.fillStyle='rgba(255,255,255,.18)'; rr(ctx,x,y,w2,72,36); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText('✓ '+t,x+28,y+17); x+=w2+16; });
     ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(0,S-150,S,150); ctx.fillStyle='#fff'; ctx.font='800 50px '+F; ctx.fillText('당근 채팅으로 문의하기',M,S-112);
     ctx.font='600 34px '+F; ctx.textAlign='right'; ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fillText(o.name||'',S-M,S-102); ctx.textAlign='left';
     return cv; }
+  // 틱톡 전용 영상 장면: 틱톡 글의 "장면:" 아래 "1. 큰 자막 | 작은 자막" 줄들. 세로 1080×1920, 위아래는 틱톡 버튼에 가리므로 비워 둔다.
+  function ttScenes(text){ var t=String(text||''), i=t.search(/(^|\n)\s*장면\s*[:：]/); if(i<0) return []; return t.slice(i).split('\n').map(function(l){ var m=l.match(/^\s*\d+\s*[.)]\s*(.+)$/); if(!m) return null; var p=m[1].split(/\s*\|\s*/); return {big:(p[0]||'').trim(),sub:p.slice(1).join(' ').trim()}; }).filter(function(x){return x&&x.big;}).slice(0,7); }
+  // 낱말 중간에서 끊지 않는 줄 나눔: 낱말 단위로만 나누고, 안 들어가면 글자를 줄인다
+  function wordFit(ctx,text,maxW,maxLines,sizes,weight){ var words=String(text).split(/\s+/).filter(Boolean);
+    for(var k=0;k<sizes.length;k++){ ctx.font=weight+' '+sizes[k]+'px '+F; var L=[], cur='', ok=true;
+      words.forEach(function(w){ if(ctx.measureText(w).width>maxW) ok=false; var t=cur?cur+' '+w:w; if(ctx.measureText(t).width<=maxW) cur=t; else { if(cur) L.push(cur); cur=w; } }); if(cur) L.push(cur);
+      if(ok&&L.length<=maxLines) return {size:sizes[k],lines:L}; }
+    return fit(ctx,text,maxW,maxLines,sizes,weight); }
+  function ttDraw(sc,i,n,o){ var VW=1080,VH=1920, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o.color), M=90, first=i===0, lastS=i===n-1, dark=first||lastS;
+    ctx.fillStyle=dark?col:'#F7F8FA'; ctx.fillRect(0,0,VW,VH);
+    if(first&&o.cover){ var im=o.cover, s=Math.max(VW/im.width,VH/im.height), w=im.width*s, h=im.height*s; ctx.save(); ctx.filter='contrast(1.06) saturate(1.05)'; ctx.drawImage(im,(VW-w)/2,(VH-h)/2,w,h); ctx.restore(); ctx.fillStyle='rgba(0,0,0,.52)'; ctx.fillRect(0,0,VW,VH); }
+    else if(dark){ ctx.fillStyle='rgba(255,255,255,.10)'; ctx.beginPath(); ctx.arc(VW-60,420,360,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(80,VH-560,280,0,7); ctx.fill(); }
+    
+    ctx.textBaseline='top'; ctx.fillStyle=dark?'rgba(255,255,255,.92)':'#8B95A1'; ctx.font='700 44px '+F; ctx.fillText(o.name||'',M,250);
+    if(!dark){ ctx.textAlign='right'; ctx.fillText(i+' / '+(n-2),VW-M,250); ctx.textAlign='left'; }
+    var b=wordFit(ctx,sc.big,VW-M*2,3,[156,136,118,102,88,76],'800'), lh=Math.round(b.size*1.22), sb=sc.sub?wordFit(ctx,sc.sub,VW-M*2,3,[64,58,52,46],'600'):null, lh2=sb?Math.round(sb.size*1.45):0;
+    var total=lh*b.lines.length+(sb?44+lh2*sb.lines.length:0), y=Math.max(600,Math.round((VH-total)/2)-60);
+    if(!dark){ ctx.fillStyle=col; ctx.fillRect(M,y-70,120,14); }
+    ctx.fillStyle=dark?'#fff':'#191F28'; ctx.font='800 '+b.size+'px '+F; lines(ctx,b.lines,M,y,lh); y+=lh*b.lines.length+44;
+    if(sb){ ctx.fillStyle=dark?'rgba(255,255,255,.9)':'#4E5968'; ctx.font='600 '+sb.size+'px '+F; lines(ctx,sb.lines,M,y,lh2); }
+    return cv; }
   window.lfCards={ parse:parse,
+    ttScenes:ttScenes, ttFrames:function(text,o){ var S=ttScenes(text); if(S.length<3) return []; return S.map(function(s,i){ return ttDraw(s,i,S.length,o||{}); }); },
     daangn:dgParts, daangnBanner:dgBanner,
     video:video,
+    // 블로그 글 안의 "[그림1: 큰 글 | 작은 글]" 줄이 있으면 그 줄대로 블로그 전용 그림을 만든다. 없으면 카드 가운데 장으로 대신한다.
     blog:function(pages,o){ o=o||{}; var P=parse(pages); if(P.length<2) return Promise.resolve([]); var mid=P.slice(1,P.length>2?P.length-1:P.length).slice(0,4);
+      var bt=String(o.blogText||''), own=[], re=/\[그림\s*\d+\s*[:：]\s*([^\]\n]+)\]/g, mm; while((mm=re.exec(bt))&&own.length<4){ own.push({label:'',text:mm[1].trim()}); }
+      if(own.length>=2) mid=own; var tm=bt.match(/^\s*제목\s*[:：]\s*(.+)$/m); if(tm) o=Object.assign({},o,{title:tm[1].trim()});
       return [blogThumb(P,o)].concat(mid.map(function(p,i){ return blogBody(p,i,o); })); },
     profile:function(o){ var ready=document.fonts&&document.fonts.load?document.fonts.load("800 160px 'Gothic A1'").catch(function(){}):Promise.resolve(); return ready.then(function(){ return profile(o||{}); }); },
     // 채널 로고(대표님이 준 파일 그대로)를 한 번 읽어 둔다. 못 읽은 것은 빼고 글자만 쓴다.
