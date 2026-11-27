@@ -177,7 +177,24 @@
     ctx.fillStyle=dark?'#fff':'#191F28'; ctx.font='800 '+b.size+'px '+F; lines(ctx,b.lines,M,y,lh); y+=lh*b.lines.length+44;
     if(sb){ ctx.fillStyle=dark?'rgba(255,255,255,.9)':'#4E5968'; ctx.font='600 '+sb.size+'px '+F; lines(ctx,sb.lines,M,y,lh2); }
     return cv; }
+  // 쇼츠 대본("1. (0~3초) 화면: … | 말: … | 자막: …")을 장면으로 나누고, 장면마다 스토리보드 그림(세로)을 그린다
+  function shScenes(script){ return String(script||'').split('\n').map(function(l){ var m=l.match(/^\s*(\d+)\s*[.)]\s*(?:\(([^)]*)\))?\s*(.+)$/); if(!m) return null; var o={n:m[1],time:(m[2]||'').trim(),shot:'',say:'',cap:''};
+      m[3].split(/\s*\|\s*/).forEach(function(p){ var q=p.match(/^(화면|말|자막)\s*[:：]\s*(.*)$/); if(q) o[{'화면':'shot','말':'say','자막':'cap'}[q[1]]]=q[2].trim(); else if(!o.shot) o.shot=p.trim(); }); return (o.shot||o.say||o.cap)?o:null; }).filter(Boolean).slice(0,10); }
+  function shDraw(sc,i,n,o){ var VW=1080,VH=1920, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o.color), M=80;
+    ctx.fillStyle='#14171C'; ctx.fillRect(0,0,VW,VH); ctx.textBaseline='top';
+    // 위: 장면 번호와 시간
+    ctx.fillStyle=col; rr(ctx,M,150,150,84,42); ctx.fill(); ctx.fillStyle='#fff'; ctx.font='800 46px '+F; ctx.textAlign='center'; ctx.fillText((i+1)+' / '+n,M+75,168); ctx.textAlign='left';
+    if(sc.time){ ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='600 42px '+F; ctx.fillText(sc.time,M+180,170); }
+    // 가운데: 화면 설명(촬영 메모)
+    ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=4; ctx.setLineDash([18,14]); rr(ctx,M,300,VW-M*2,760,36); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 36px '+F; ctx.fillText('화면',M+40,336);
+    var w=wordFit(ctx,sc.shot||'(화면 설명 없음)',VW-M*2-80,8,[60,54,48,42],'600'); ctx.fillStyle='#fff'; ctx.font='600 '+w.size+'px '+F; lines(ctx,w.lines,M+40,410,Math.round(w.size*1.45));
+    // 아래: 자막(크게)과 말
+    var y=1130; if(sc.cap){ var cp=niceFit(ctx,sc.cap,VW-M*2-60,[104,92,80,70,60],'800',80), lh=Math.round(cp.size*1.22), bh=lh*cp.lines.length+56; ctx.fillStyle=col; rr(ctx,M,y,VW-M*2,bh,30); ctx.fill(); ctx.fillStyle='#fff'; ctx.font='800 '+cp.size+'px '+F; lines(ctx,cp.lines,M+30,y+30,lh); y+=bh+40; }
+    if(sc.say){ ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 36px '+F; ctx.fillText('말',M,y); y+=58; var sy=wordFit(ctx,'“'+sc.say+'”',VW-M*2,7,[54,48,44,40],'500'); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='500 '+sy.size+'px '+F; lines(ctx,sy.lines.slice(0,7),M,y,Math.round(sy.size*1.5)); }
+    return cv; }
   window.lfCards={ parse:parse,
+    shScenes:shScenes, shBoard:function(script,o){ var S=shScenes(script); return S.map(function(s,i){ return shDraw(s,i,S.length,o||{}); }); },
     ttScenes:ttScenes, ttFrames:function(text,o){ var S=ttScenes(text); if(S.length<3) return []; return S.map(function(s,i){ return ttDraw(s,i,S.length,o||{}); }); },
     daangn:dgParts, daangnBanner:dgBanner,
     video:video,

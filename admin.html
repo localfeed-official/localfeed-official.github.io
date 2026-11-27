@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1128b">
+<link rel="stylesheet" href="a.css?v=1128c">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1128b"></script>
+<script src="cards.js?v=1128c"></script>
 <script>
 (function(){
   var K=null;
@@ -277,7 +277,7 @@
   };
   // 사람이 나오는 쇼츠 제작 판: 고르고 확인하는 곳. 분석·대본·장면 그림·영상은 Claude 대화에서 만들어 '쇼츠' 탭에 적는다.
   function shortsHtml(s){ var L=(D.shorts||[]).filter(function(x){return x.store===s.code;}), ST=['추천','선택','기획','기획 확정','스토리보드','제작 요청','완성','게시'];
-    var next={'추천':'마음에 드는 참고 영상을 골라 주세요.','선택':'고른 영상 파일을 Claude 대화에 올리면 구조를 분석해 기획(대본)을 써요.','기획':'대본을 읽고 좋으면 스토리보드를 요청해 주세요.','기획 확정':'Claude가 장면 그림(스토리보드)을 그리는 차례예요. 대화에서 "쇼츠 이어서"라고 해 주세요.','스토리보드':'장면 그림을 보고 좋으면 제작하기를 눌러 주세요. 여기서부터 영상 제작 비용이 들어요.','제작 요청':'Claude가 영상을 만드는 차례예요. 대화에서 "쇼츠 이어서"라고 해 주세요.','완성':'영상을 확인하고 틱톡·인스타에 올려 주세요. 올릴 때 앱의 AI 생성 표시를 켭니다.','게시':'올린 영상이에요.'};
+    var next={'추천':'마음에 드는 참고 영상을 골라 주세요.','선택':'고른 참고 영상을 내려받아 여기에 올려 주세요. 장면을 뽑아 구조를 분석하고 로컬피드 대본을 써요(1~2분, 작성 비용이 들어요). 영상 파일은 저장하지 않아요.','기획':'대본을 읽고 좋으면 스토리보드를 눌러 주세요. 장면마다 화면·자막·말을 한 장씩 그려서 보여 줘요.','기획 확정':'스토리보드를 그리는 중이에요.','스토리보드':'장면 그림을 보고 좋으면 제작하기를 눌러 주세요. 여기서부터 영상 제작 비용이 들어요.','제작 요청':'Claude가 영상을 만드는 차례예요. 대화에서 "쇼츠 이어서"라고 해 주세요.','완성':'영상을 확인하고 틱톡·인스타에 올려 주세요. 올릴 때 앱의 AI 생성 표시를 켭니다.','게시':'올린 영상이에요.'};
     var item=function(x){ var link=/^https:\/\//.test(x.ref)?'<a class="link" target="_blank" rel="noopener noreferrer" href="'+esc(x.ref)+'">참고 영상 열기</a>':'';
       return '<div class="wt"><div class="wh"><b>'+esc(x.title||x.note.split('\n')[0]||'참고 영상')+'</b><span><span class="chip '+(x.stage==='완성'||x.stage==='게시'?'ok':x.stage==='추천'?'':'soft')+'">'+esc(x.stage)+'</span></span></div>'+
         (x.note?'<p style="white-space:pre-wrap">'+esc(x.note)+'</p>':'')+(link?'<small>'+link+'</small>':'')+
@@ -286,7 +286,7 @@
         (x.video?'<small><b>완성 영상</b> <a class="link" target="_blank" rel="noopener" href="'+esc(x.video)+'">열기·내려받기</a></small>':'')+
         (x.memo?'<div class="caution" style="margin:8px 0">'+esc(x.memo)+'</div>':'')+
         '<small>'+esc(next[x.stage]||'')+'</small>'+
-        '<div class="acts" style="margin-top:8px">'+(x.stage==='추천'?'<button class="btn sm" data-sh="pick" data-id="'+esc(x.id)+'">이걸로 할게요</button>':'')+(x.stage==='기획'?'<button class="btn sm" data-sh="plan_ok" data-id="'+esc(x.id)+'">좋아요, 스토리보드 그려 주세요</button>':'')+(x.stage==='스토리보드'?'<button class="btn sm" data-sh="make" data-id="'+esc(x.id)+'">제작하기</button>':'')+(x.stage==='완성'?'<button class="btn sm" data-sh="posted" data-id="'+esc(x.id)+'">올렸어요</button>':'')+(x.stage==='기획'||x.stage==='스토리보드'?'<button class="btn sm gray" data-sh="fix" data-id="'+esc(x.id)+'">고쳐 주세요</button>':'')+(x.stage!=='게시'?'<button class="btn sm gray" data-sh="drop" data-id="'+esc(x.id)+'">빼기</button>':'')+'</div></div>'; };
+        '<div class="acts" style="margin-top:8px">'+(x.stage==='추천'?'<button class="btn sm" data-sh="pick" data-id="'+esc(x.id)+'">이걸로 할게요</button>':'')+(x.stage==='선택'||x.stage==='기획'?'<button class="btn sm'+(x.stage==='기획'?' gray':'')+'" data-shup="'+esc(x.id)+'">'+(x.stage==='기획'?'참고 영상 다시 올리기':'참고 영상 파일 올리기')+'</button>':'')+(x.stage==='기획'||x.stage==='기획 확정'?'<button class="btn sm" data-shboard="'+esc(x.id)+'">좋아요, 스토리보드 그리기</button>':'')+(x.stage==='스토리보드'?'<button class="btn sm" data-sh="make" data-id="'+esc(x.id)+'">제작하기</button>':'')+(x.stage==='완성'?'<button class="btn sm" data-sh="posted" data-id="'+esc(x.id)+'">올렸어요</button>':'')+(x.stage==='기획'||x.stage==='스토리보드'?'<button class="btn sm gray" data-sh="fix" data-id="'+esc(x.id)+'">고쳐 주세요</button>':'')+(x.stage!=='게시'?'<button class="btn sm gray" data-sh="drop" data-id="'+esc(x.id)+'">빼기</button>':'')+'</div></div>'; };
     var go=L.filter(function(x){return x.stage!=='추천'&&x.stage!=='게시';}), rec=L.filter(function(x){return x.stage==='추천';}), done=L.filter(function(x){return x.stage==='게시';});
     return '<div class="box"><div class="hd" style="margin:0 0 6px"><div><h2 style="margin:0">쇼츠 제작</h2><small>사람이 나오는 틱톡·릴스 영상이에요. 참고 영상은 구조만 보고, 대본·화면·출연자는 새로 만들어요. 순서: 고르기 → 기획 → 스토리보드 → 제작</small></div><div class="acts"><button class="btn sm gray" data-sh="add" data-store="'+esc(s.code)+'">참고 영상 주소 넣기</button></div></div>'+
       (go.length?'<h2 style="margin-top:14px">진행 중 '+go.length+'건</h2>'+go.map(item).join(''):'')+
@@ -412,6 +412,26 @@
       _api({action:'admin_remake',k:K,id:id,ch:ch}).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); if(ch!=='블로그 글') return r; render(); return _api({action:'admin_make_blog',k:K,id:id}).then(function(r2){ if(!r2.ok) throw new Error(r2.error); D=norm(r2); return r2; }); })
         .then(function(){ BUSY.remake=false; J.end(); render(); say(nm+' 글을 다시 썼어요. 그림이나 영상도 바꾸려면 옆의 다시 만들기를 눌러 주세요.',true); })
         .catch(function(e){ BUSY.remake=false; J.end(); render(); if(/^LOGIN/.test(e.message)) return logout(true); say(nm+' 글 다시 쓰기: '+e.message); }); };});
+    // 참고 영상 올리기: 브라우저가 영상에서 장면 12장을 뽑아 작은 그림으로 보낸다(영상 파일은 보내지 않는다)
+    [].forEach.call(document.querySelectorAll('[data-shup]'),function(b){ if(BUSY.sh) b.disabled=true; b.onclick=function(){ var id=b.dataset.shup, inp=document.createElement('input'); inp.type='file'; inp.accept='video/*';
+      inp.onchange=function(){ var f=inp.files[0]; if(!f) return; if(f.size>300*1024*1024) return say('영상이 너무 커요(300MB까지).'); BUSY.sh=true; b.disabled=true; var J=job('참고 영상에서 장면 뽑는 중');
+        var v=document.createElement('video'); v.muted=true; v.playsInline=true; v.preload='auto'; v.src=URL.createObjectURL(f);
+        var fail=function(t){ BUSY.sh=false; J.end(); URL.revokeObjectURL(v.src); render(); say('참고 영상: '+t); };
+        v.onerror=function(){ fail('이 파일은 읽을 수 없어요. MP4로 다시 받아 올려 주세요.'); };
+        v.onloadedmetadata=function(){ var d=v.duration; if(!isFinite(d)||d<2) return fail('영상 길이를 읽지 못했어요.'); if(d>180) return fail('3분보다 짧은 영상만 올릴 수 있어요.');
+          var T=[0.3,1.5,3].filter(function(t){return t<d-0.3;}), n=9; for(var i=1;i<=n;i++){ var t=3+(d-3.4)*i/n; if(t>3.2&&t<d-0.1) T.push(t); }
+          var W=360, H=Math.round(W*v.videoHeight/v.videoWidth)||640, cv=document.createElement('canvas'); cv.width=W; cv.height=H; var ctx=cv.getContext('2d'), out=[], k=0;
+          var grab=function(){ if(k>=T.length){ J.set('구조 분석하고 대본 쓰는 중 (1~2분)'); URL.revokeObjectURL(v.src);
+              return _api({action:'admin_shorts',k:K,what:'analyze',id:id,value:JSON.stringify({duration:d,w:v.videoWidth,h:v.videoHeight,frames:out})}).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); BUSY.sh=false; J.end(); render(); say('기획이 나왔어요. 대본을 읽어 보세요.',true); }).catch(function(e){ BUSY.sh=false; J.end(); render(); if(/^LOGIN/.test(e.message)) return logout(true); say('쇼츠 기획: '+e.message); }); }
+            v.onseeked=function(){ try{ ctx.drawImage(v,0,0,W,H); out.push({t:T[k],data:cv.toDataURL('image/jpeg',0.72).split(',')[1]}); }catch(e){} k++; grab(); }; v.currentTime=T[k]; };
+          grab(); }; };
+      inp.click(); };});
+    // 스토리보드: 대본을 장면 그림으로 그려 올린다
+    [].forEach.call(document.querySelectorAll('[data-shboard]'),function(b){ if(BUSY.sh) b.disabled=true; b.onclick=function(){ var x=(D.shorts||[]).filter(function(s){return s.id===b.dataset.shboard;})[0]; if(!x) return; var st=D.stores.filter(function(s){return s.code===x.store;})[0]||{};
+      var L=[]; try{ L=lfCards.shBoard(x.script,{color:st.color||''}); }catch(e){ L=[]; } if(L.length<3) return say('대본에서 장면을 읽지 못했어요. "1. (0~3초) 화면: … | 말: … | 자막: …" 꼴인지 봐 주세요.');
+      BUSY.sh=true; b.disabled=true; var J=job('스토리보드 그리는 중');
+      var small=L.map(function(cv){ var s=document.createElement('canvas'); s.width=720; s.height=1280; s.getContext('2d').drawImage(cv,0,0,720,1280); return s.toDataURL('image/jpeg',0.85).split(',')[1]; });
+      _api({action:'admin_shorts',k:K,what:'board',id:x.id,value:JSON.stringify(small)}).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); BUSY.sh=false; J.end(); render(); say('스토리보드가 나왔어요.',true); }).catch(function(e){ BUSY.sh=false; J.end(); render(); if(/^LOGIN/.test(e.message)) return logout(true); say('스토리보드: '+e.message); }); };});
     [].forEach.call(document.querySelectorAll('[data-sh]'),function(b){b.onclick=function(){ var w=b.dataset.sh, v='';
       if(w==='add'){ v=(window.prompt('참고할 영상 주소를 붙여 넣어 주세요 (틱톡, 인스타, 메타 광고 라이브러리, 유튜브)','')||'').trim(); if(!v) return; }
       if(w==='fix'){ v=(window.prompt('어떻게 고칠까요? 말하듯 적어 주세요.','')||'').trim(); if(!v) return; }
