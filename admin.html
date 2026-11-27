@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127p">
+<link rel="stylesheet" href="a.css?v=1127q">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127p"></script>
+<script src="cards.js?v=1127q"></script>
 <script>
 (function(){
   var K=null;
@@ -294,7 +294,7 @@
           (h[0]==='블로그 글'&&!c.text[h[0]]&&editW!==k?'<p>(아직 없음) <button class="link" data-blog="'+esc(c.id)+'">블로그 글 쓰기</button></p>':editW===k?'<textarea class="in" id="wT" style="min-height:'+(h[0]==='블로그 글'?'320':'130')+'px">'+esc(c.text[h[0]])+'</textarea><div class="acts" style="margin-top:6px"><button class="btn sm" data-wsave="'+esc(k)+'">저장</button><button class="btn sm gray" data-wedit="">취소</button></div>':'<p>'+esc(c.text[h[0]]||'(없음)')+'</p>')+'</div>'; }).join('')+
       (!/^쇼츠/.test(c.form)?'<small><b>표지 사진</b> '+(c.art?'소재 이미지 사용 · ':'매장이 보낸 사진을 씁니다(없으면 글자만) · ')+'<button class="link" data-art="'+esc(c.id)+'">소재 이미지 주소 넣기</button></small>':'')+
       (c.check?'<small><b>검수</b> '+esc(c.check)+'</small>':'')+(c.memo?'<small><b>메모</b> '+esc(c.memo)+'</small>':'')+
-      '<div class="acts" style="margin-top:10px">'+(c.pages&&!/^쇼츠/.test(c.form)?'<button class="btn sm gray" data-cards="'+esc(c.id)+'">'+(c.media.length?'카드 다시 만들기':'카드 만들기')+'</button>':'')+'<button class="btn sm gray" data-wrev="'+esc(c.id)+'" data-ch="">전체를 말로 고치기</button>'+(c.text['당근 글']&&/^(확정|게시)/.test(c.status)?(function(){ var P=D.publishes.filter(function(p){return p.id===c.id&&p.ch==='당근';}), wait=P.some(function(p){return p.status==='요청';}), done=P.some(function(p){return p.status==='게시됨';});
+      '<div class="acts" style="margin-top:10px">'+(c.pages&&!/^쇼츠/.test(c.form)?'<button class="btn sm gray" data-cards="'+esc(c.id)+'">'+(c.media.length?'카드 다시 만들기':'카드 만들기')+'</button>':'')+'<button class="btn sm gray" data-wrev="'+esc(c.id)+'" data-ch="">전체를 말로 고치기</button><button class="btn sm gray" data-remake="'+esc(c.id)+'">글 다시 만들기</button>'+(c.text['당근 글']&&/^(확정|게시)/.test(c.status)?(function(){ var P=D.publishes.filter(function(p){return p.id===c.id&&p.ch==='당근';}), wait=P.some(function(p){return p.status==='요청';}), done=P.some(function(p){return p.status==='게시됨';});
         return wait?'<button class="btn sm gray" data-dgreq="cancel" data-id="'+esc(c.id)+'">당근 올리기 대기 중 · 취소</button>':'<button class="btn sm gray" data-dgreq="request" data-id="'+esc(c.id)+'">'+(done?'당근 다시 올리기':'당근 올리기')+'</button>'; })():'')+(/^(대표님 확인|수정)/.test(c.status)||!c.status?'<button class="btn sm" data-wdo="send" data-id="'+esc(c.id)+'">매장에 보내기</button>':/^매장 확인/.test(c.status)?'<button class="btn sm gray" data-wdo="hold" data-id="'+esc(c.id)+'">보낸 것 거두기</button>':/^(확정|게시 실패)/.test(c.status)?'<button class="btn sm" data-pubnow="'+esc(c.id)+'">지금 올리기</button>':'')+(/^게시/.test(c.status)&&c.media.length?'<button class="btn sm gray" data-repost="'+esc(c.id)+'">'+(REPOST===c.id?'닫기':'다시 올리기')+'</button>':'')+'</div>'+
       (REPOST===c.id?(function(){ var tt=(D.ttStores||'').split(/[\s,]+/).indexOf(c.store)>=0, old=D.publishes.filter(function(p){return p.id===c.id&&p.status==='게시됨'&&/^https:/.test(p.link);});
         return '<div class="caution" style="margin-top:10px"><b>어디에 다시 올릴까요?</b> 고른 채널에만 새 게시물이 하나 더 올라가요. 먼저 올라간 게시물은 자동으로 지워지지 않으니, 앱에서 직접 지워 주세요.'+(old.length?' 먼저 올라간 것: '+old.map(function(p){return '<a href="'+esc(p.link)+'" target="_blank" rel="noopener">'+esc(p.ch)+'</a>';}).join(' · '):'')+
@@ -381,6 +381,11 @@
     [].forEach.call(document.querySelectorAll('[data-tts]'),function(b){b.onclick=function(){ b.disabled=true; b.textContent='확인 중…'; _api({action:'admin_tt_status',k:K,store:b.dataset.store,id:b.dataset.tts}).then(function(r){ b.disabled=false; b.textContent='지금 상태 확인'; if(!r.ok) throw new Error(r.error); say(r.text,/INBOX|COMPLETE/.test(r.status)); }).catch(function(e){ b.disabled=false; b.textContent='지금 상태 확인'; if(/^LOGIN/.test(e.message)) return logout(true); say(e.message); }); };});
     [].forEach.call(document.querySelectorAll('[data-repost]'),function(b){b.onclick=function(){ REPOST=REPOST===b.dataset.repost?'':b.dataset.repost; openW=b.dataset.repost; render(); };});
     [].forEach.call(document.querySelectorAll('[data-rp]'),function(b){b.onclick=function(){ var nm={ig:'인스타',th:'스레드',tt:'틱톡(초안)'}[b.dataset.rp]; if(!window.confirm(nm+'에 다시 올릴까요? 새 게시물이 하나 더 생기고, 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job=nm+' 다시 올리기'; REPOST=''; call({action:'admin_repost',id:b.dataset.id,ch:b.dataset.rp},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패/.test(D.notice)); }); b.textContent='올리는 중…'; };});
+    [].forEach.call(document.querySelectorAll('[data-remake]'),function(b){ if(BUSY.remake) b.disabled=true; b.onclick=function(){ var id=b.dataset.remake; if(!window.confirm('이 콘텐츠의 채널별 글을 지금 규칙으로 처음부터 다시 쓸까요? 지금 글은 지워지고, 2~3분 걸리며 작성 비용이 듭니다. 끝나면 카드 다시 만들기도 해 주세요(당근 배너·틱톡 영상·블로그 그림이 글에 맞춰 바뀝니다).')) return;
+      BUSY.remake=true; b.disabled=true; var J=job('글 다시 만드는 중 · 짧은 글'); openW=id;
+      _api({action:'admin_remake',k:K,id:id}).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); render(); J.set('글 다시 만드는 중 · 블로그 글'); return _api({action:'admin_make_blog',k:K,id:id}); })
+        .then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); BUSY.remake=false; J.end(); render(); say('글을 다시 만들었어요. 읽어 보고 카드 다시 만들기를 눌러 주세요.',true); })
+        .catch(function(e){ BUSY.remake=false; J.end(); render(); if(/^LOGIN/.test(e.message)) return logout(true); say('글 다시 만들기: '+e.message); }); };});
     [].forEach.call(document.querySelectorAll('[data-pubnow]'),function(b){b.onclick=function(){ if(!window.confirm('인스타와 스레드'+(D.ttReady&&(D.ttStores||'').split(/[\s,]+/).indexOf((D.works.filter(function(x){return x.id===b.dataset.pubnow;})[0]||{}).store)>=0?'(틱톡은 초안으로)':'')+'에 지금 올릴까요? 당근과 블로그는 자동으로 올라가지 않아요. 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job='지금 올리기'; call({action:'admin_publish',id:b.dataset.pubnow},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패|없습니다/.test(D.notice)); }); b.textContent='올리는 중… 1분쯤'; };});
     [].forEach.call(document.querySelectorAll('[data-art]'),function(b){b.onclick=function(){ var c=D.works.filter(function(x){return x.id===b.dataset.art})[0]; var v=window.prompt('표지에 깔 이미지 주소를 넣어 주세요. 두 개면 쉼표로 나눕니다(둘째는 마지막 장).\n비우면 매장 사진을 씁니다.',c?c.art:''); if(v===null) return; var id=b.dataset.art; b.dataset.job='소재 이미지 저장'; call({action:'admin_content',id:id,what:'edit',ch:'소재 이미지',value:v.trim()},b).then(function(){ makeCards([id]); }); };});
     [].forEach.call(document.querySelectorAll('[data-wdo]'),function(b){b.onclick=function(){ var w=D.works.filter(function(x){return x.id===b.dataset.id})[0]; if(b.dataset.wdo==='send'&&w&&!/^쇼츠/.test(w.form)&&!w.media.length&&!window.confirm('카드 이미지가 아직 없어요. 글만 먼저 매장에 보낼까요?\n(취소하고 "카드 만들기"를 먼저 누르는 것을 권해요)')) return; call({action:'admin_content',id:b.dataset.id,what:b.dataset.wdo},b); };});
