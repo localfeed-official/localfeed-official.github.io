@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127c">
+<link rel="stylesheet" href="a.css?v=1127d">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127c"></script>
+<script src="cards.js?v=1127d"></script>
 <script>
 (function(){
   var K=null;
@@ -46,10 +46,10 @@
         return (function blog(n){ if(n>=need.length) return null; J.set('블로그 글 쓰는 중 '+(i+1)+'/'+rows.length);
           return _api({action:'admin_make_blog',k:K,id:need[n]}).then(function(r2){ if(r2.ok){ D=norm(r2); render(); } return blog(n+1); }); })(0);
       }).then(function(){ i++; next(); }).catch(function(e){ stop((i+1)+'번째에서 멈췄어요: '+e.message+' (이미 만든 것은 남아 있어요. 다시 누르면 남은 것부터 만듭니다)'); }); })(); }
-  var OPT={};
+  var OPT={}, TTERR='';
   function makeCards(ids){ if(!ids.length||BUSY.cards) return; BUSY.cards=true; var i=0, last=null, J=job('카드 그리기 시작');
     function b64(cv){ return cv.toDataURL('image/jpeg',0.9).split(',')[1]; }
-    (function next(){ if(i>=ids.length){ BUSY.cards=false; J.end(); if(last) D=last; render(); return; }
+    (function next(){ if(i>=ids.length){ BUSY.cards=false; J.end(); if(last) D=last; render(); if(TTERR){ say('카드는 만들었지만 틱톡용 영상은 만들지 못했어요: '+TTERR); TTERR=''; } return; }
       var c=D.works.filter(function(x){return x.id===ids[i]})[0], st=c&&D.stores.filter(function(x){return x.code===c.store})[0]||{};
       if(!c){ i++; return next(); }
       J.set('카드 그리는 중 '+(i+1)+'/'+ids.length);
@@ -62,7 +62,13 @@
       }).catch(function(){ return {}; }).then(function(pic){ return (lfCards.logos?lfCards.logos('icons/'):Promise.resolve(null)).then(function(LG){ pic.logos=LG; return pic; }); }).then(function(pic){ return lfCards.render(c.pages,OPT={credit:!(st.plan&&st.plan.status==='유료')||/로컬피드/.test(st.name||''),logos:pic.logos,name:st.name||'',color:st.color||'',insta:st.insta||st.igName||'',kicker:st.industry||'',cover:pic.cover||null,last:pic.last||null}); }).then(function(L){ var urls=[], n=0;
         return (function up(){ if(n>=L.length){ // 카드를 다 올렸으면 블로그용 그림(대표 1장 + 본문 그림)을 그려 올린다
             var B=[]; try{ OPT.title=c.title; B=lfCards.blog?lfCards.blog(c.pages,OPT):[]; }catch(e){ B=[]; } var bu=[], bn=0;
-            return (function upb(){ if(bn>=B.length) return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')+(bu.length?'\n블로그용: '+bu.join(', '):'')});
+            var fin=function(){ return _api({action:'admin_content',k:K,id:c.id,what:'edit',ch:'이미지 폴더',value:'게시용: '+urls.join(', ')+(bu.length?'\n블로그용: '+bu.join(', '):'')}); };
+            // 틱톡을 켠 매장이면 카드를 세로 영상으로 묶어 올린다(틱톡 초안용). 실패해도 카드는 만든 것으로 둔다.
+            var tt=(D.ttStores||'').split(/[\s,]+/).indexOf(c.store)>=0&&lfCards.video;
+            var vid=function(){ if(!tt) return fin(); J.set('틱톡용 영상 만드는 중 '+(i+1)+'/'+ids.length+' · 약 '+Math.round(L.length*3)+'초 (이 창을 보고 있어 주세요)');
+              return lfCards.video(L,{color:st.color||''}).then(function(bl){ return new Promise(function(ok,no){ var fr=new FileReader(); fr.onload=function(){ ok(String(fr.result).split(',')[1]); }; fr.onerror=no; fr.readAsDataURL(bl); }); })
+                .then(function(b){ J.set('틱톡용 영상 올리는 중 '+(i+1)+'/'+ids.length); return _api({action:'admin_card',k:K,id:c.id,n:'v',data:b}); }).then(function(r){ if(!r.ok) throw new Error(r.error); },function(e){ TTERR=e.message; }).then(fin); };
+            return (function upb(){ if(bn>=B.length) return vid();
               J.set('블로그 그림 올리는 중 '+(i+1)+'/'+ids.length+' · '+(bn+1)+'/'+B.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:'b'+bn,data:b64(B[bn])}).then(function(r){ if(!r.ok) throw new Error(r.error); bu.push(r.url); bn++; return upb(); }); })(); }
           J.set('카드 올리는 중 '+(i+1)+'/'+ids.length+' · '+(n+1)+'/'+L.length+'장'); return _api({action:'admin_card',k:K,id:c.id,n:n+1,data:b64(L[n])}).then(function(r){ if(!r.ok) throw new Error(r.error); urls.push(r.url); n++; return up(); }); })();
       }).then(function(r){ if(!r.ok) throw new Error(r.error); last=norm(r); D=last; i++; next(); }).catch(function(e){ BUSY.cards=false; J.end(); if(last) D=last; render(); say('카드 만들기가 멈췄어요: '+e.message); }); })(); }

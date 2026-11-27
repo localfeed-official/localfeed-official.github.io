@@ -106,7 +106,25 @@
     if(sub){ ctx.fillStyle='#4E5968'; var sb=fit(ctx,sub,BW-X*2,3,[46,42,38,34],'500'); ctx.font='500 '+sb.size+'px '+F; lines(ctx,sb.lines,X,y,Math.round(sb.size*1.5)); }
     ctx.font='600 28px '+F; ctx.fillStyle='#8B95A1'; ctx.fillText(o.name||'',X,BH-104);
     return cv; }
+  // 틱톡용: 카드들을 세로 영상(1080×1920)으로 묶는다. 한 장에 약 3초, 장 사이는 짧게 겹쳐 넘긴다. 브라우저가 실시간으로 녹화한다.
+  function video(L,o){ return new Promise(function(res,rej){
+    if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream) return rej(new Error('이 브라우저는 영상을 만들지 못해요. 크롬에서 해 주세요.'));
+    var mime=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].filter(function(m){ try{ return MediaRecorder.isTypeSupported(m); }catch(e){ return false; } })[0];
+    if(!mime) return rej(new Error('이 브라우저는 영상을 만들지 못해요.'));
+    var VW=1080,VH=1920, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o&&o.color), per=(o&&o.per)||3000, fade=350, total=L.length*per+400;
+    function slide(i,alpha){ var im=L[i]; if(!im) return; var h=VW*im.height/im.width, y=(VH-h)/2; ctx.globalAlpha=alpha; ctx.drawImage(im,0,y,VW,h); ctx.globalAlpha=1; }
+    function frame(t){ ctx.fillStyle=col; ctx.fillRect(0,0,VW,VH); ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(0,0,VW,VH);
+      var i=Math.min(L.length-1,Math.floor(t/per)), into=t-i*per; slide(i,1); if(i>0&&into<fade){ slide(i-1,1-into/fade); }
+      ctx.fillStyle='rgba(255,255,255,'+(0.9+0.1*Math.sin(t/200))+')'; ctx.fillRect(0,VH-6,VW*Math.min(1,t/(L.length*per)),6); }   // 아래 진행 줄(매 프레임 화면이 바뀌어 녹화가 끊기지 않게도 한다)
+    frame(0);
+    var rec=new MediaRecorder(cv.captureStream(30),{mimeType:mime,videoBitsPerSecond:3500000}), chunks=[], t0=0, timer=null;
+    rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+    rec.onerror=function(){ clearInterval(timer); rej(new Error('영상을 만들다 멈췄어요.')); };
+    rec.onstop=function(){ res(new Blob(chunks,{type:mime.split(';')[0]})); };
+    rec.start(500); t0=performance.now();
+    timer=setInterval(function(){ var t=performance.now()-t0; if(t>=total){ clearInterval(timer); frame(L.length*per-1); setTimeout(function(){ rec.stop(); },150); return; } frame(t); },33); }); }
   window.lfCards={ parse:parse,
+    video:video,
     blog:function(pages,o){ o=o||{}; var P=parse(pages); if(P.length<2) return Promise.resolve([]); var mid=P.slice(1,P.length>2?P.length-1:P.length).slice(0,4);
       return [blogThumb(P,o)].concat(mid.map(function(p,i){ return blogBody(p,i,o); })); },
     profile:function(o){ var ready=document.fonts&&document.fonts.load?document.fonts.load("800 160px 'Gothic A1'").catch(function(){}):Promise.resolve(); return ready.then(function(){ return profile(o||{}); }); },
