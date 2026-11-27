@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>(새 화면 시안) 로컬피드 운영</title>
 <link rel="icon" href="icons/logo.svg">
-<link rel="stylesheet" href="a.css?v=1127j">
+<link rel="stylesheet" href="a.css?v=1127k">
 </head>
 <body>
 <div class="shell">
@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1127j"></script>
+<script src="cards.js?v=1127k"></script>
 <script>
 (function(){
   var K=null;
@@ -356,8 +356,20 @@
           var t=L[i]; J.set(label+' '+(i+1)+'/'+L.length+' · '+t.name);
           var body=kind==='profile'?{action:'admin_profile',what:'make',store:t.store}:kind==='research'?{action:'admin_done',what:'research',store:t.store}:kind==='plan_make'?{action:'admin_plan_make',store:t.store,week:t.week||''}:{action:'admin_plan_week',store:t.store,week:t.week};
           body.k=K; _api(body).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); }).catch(function(e){ fail.push(t.name+': '+e.message); }).then(function(){ i++; render(); next(); }); })(); };});
-    // 당근: 공식 연동이 없어, 올리기 요청을 발행 탭에 적어 두면 브라우저 작업이 차례로 올린다.
-    [].forEach.call(document.querySelectorAll('[data-dgreq]'),function(b){b.onclick=function(){ var w=b.dataset.dgreq; if(w==='request'&&!window.confirm('당근에 올릴까요? 대표님 컴퓨터의 크롬에서 차례로 올라갑니다(보통 1시간 안). 올린 뒤에는 당근에서 직접 지워야 합니다.')) return; b.dataset.job='당근 올리기'; call({action:'admin_daangn',id:b.dataset.id,what:w},b).then(function(){ if(D&&D.notice) say(D.notice,true); }); };});
+    // 당근: 공식 연동이 없다. 크롬에 '로컬피드 당근 올리기' 확장이 있으면 바로 올리고, 없으면 요청만 적어 둔다.
+    [].forEach.call(document.querySelectorAll('[data-dgreq]'),function(b){ if(BUSY.dg) b.disabled=true; b.onclick=function(){ var w=b.dataset.dgreq, id=b.dataset.id, ext=document.documentElement.getAttribute('data-lf-ext');
+      if(w==='cancel') return call({action:'admin_daangn',id:id,what:'cancel'},b);
+      var c=D.works.filter(function(x){return x.id===id;})[0]; if(!c) return; var st=D.stores.filter(function(x){return x.code===c.store;})[0]||{}, no=String(st.daangn||'').replace(/\D/g,'');
+      if(no.length<4) return say('이 매장의 당근 프로필 번호가 없어요. 매장 "설정·가게 정보"에서 먼저 넣어 주세요.');
+      if(!ext){ if(!window.confirm('이 크롬에는 당근 올리기 확장 프로그램이 없어요. 올리기 요청만 적어 둘까요? (확장을 설치하면 버튼 한 번으로 바로 올라갑니다.)')) return; b.dataset.job='당근 올리기'; return call({action:'admin_daangn',id:id,what:'request'},b).then(function(){ if(D&&D.notice) say(D.notice,true); }); }
+      if(!window.confirm((st.name||'')+' 당근 비즈프로필에 지금 올릴까요?\n\n제목: '+c.title+'\n사진 '+Math.min(10,c.media.length)+'장\n\n당근 창이 열리고 자동으로 올라갑니다. 올린 뒤에는 당근에서 직접 지워야 합니다.')) return;
+      BUSY.dg=true; b.disabled=true; var J=job('당근 올리는 중 · 열린 당근 창을 닫지 마세요'), rid='d'+Date.now();
+      var fin=function(res){ window.removeEventListener('message',on); clearTimeout(tm); BUSY.dg=false; J.end();
+        if(res&&res.ok){ call({action:'admin_daangn',id:id,what:'done',memo:'확장 프로그램'}).then(function(){ say('당근에 올렸어요: '+c.title,true); }); }
+        else { render(); say('당근 올리기: '+((res&&res.error)||'알 수 없는 이유로 멈췄어요.')+(res&&res.login?'':' 열린 당근 창을 확인해 주세요. 이미 올라갔는지 본 뒤에 다시 눌러 주세요.')); } };
+      var on=function(e){ if(e.source!==window||e.origin!==location.origin||!e.data||e.data.lf!=='daangn_result'||e.data.rid!==rid) return; fin(e.data.res); };
+      var tm=setTimeout(function(){ fin({ok:false,error:'2분이 지나도 끝나지 않았어요.'}); },120000);
+      window.addEventListener('message',on); window.postMessage({lf:'daangn_post',rid:rid,job:{profile:no,title:c.title,body:c.text['당근 글'],images:c.media.filter(function(u){return !/\.mp4/.test(u);}).slice(0,10)}},location.origin); };});
     [].forEach.call(document.querySelectorAll('[data-tts]'),function(b){b.onclick=function(){ b.disabled=true; b.textContent='확인 중…'; _api({action:'admin_tt_status',k:K,store:b.dataset.store,id:b.dataset.tts}).then(function(r){ b.disabled=false; b.textContent='지금 상태 확인'; if(!r.ok) throw new Error(r.error); say(r.text,/INBOX|COMPLETE/.test(r.status)); }).catch(function(e){ b.disabled=false; b.textContent='지금 상태 확인'; if(/^LOGIN/.test(e.message)) return logout(true); say(e.message); }); };});
     [].forEach.call(document.querySelectorAll('[data-repost]'),function(b){b.onclick=function(){ REPOST=REPOST===b.dataset.repost?'':b.dataset.repost; openW=b.dataset.repost; render(); };});
     [].forEach.call(document.querySelectorAll('[data-rp]'),function(b){b.onclick=function(){ var nm={ig:'인스타',th:'스레드',tt:'틱톡(초안)'}[b.dataset.rp]; if(!window.confirm(nm+'에 다시 올릴까요? 새 게시물이 하나 더 생기고, 올린 뒤에는 되돌릴 수 없습니다.')) return; b.dataset.job=nm+' 다시 올리기'; REPOST=''; call({action:'admin_repost',id:b.dataset.id,ch:b.dataset.rp},b).then(function(){ if(D&&D.notice) say(D.notice,!/실패/.test(D.notice)); }); b.textContent='올리는 중…'; };});
