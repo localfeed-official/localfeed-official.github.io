@@ -156,8 +156,17 @@
       return VideoDecoder.isConfigSupported(cfg).then(function(r){ if(!r.supported) throw new Error('이 컴퓨터는 이 영상('+vt.codec+')을 풀지 못해요.');
         var codecs=['avc1.640028','avc1.4D4028','avc1.42E028']; return codecs.reduce(function(p,c){ return p.then(function(ok){ if(ok) return ok; return VideoEncoder.isConfigSupported({codec:c,width:W,height:H,bitrate:4000000,framerate:fps}).then(function(q){ return q.supported?c:''; },function(){ return ''; }); }); },Promise.resolve('')); })
       .then(function(codec){ if(!codec) throw new Error('이 컴퓨터는 영상 인코딩을 지원하지 않아요.');
+        // 배경음악: 원래 소리(말)를 풀어 음악과 섞은 뒤 다시 압축한다. 이 컴퓨터가 소리 압축을 못 하면 음악 없이 원래 소리를 그대로 옮긴다
+        var mixP=Promise.resolve(null);
+        if(o.bgm&&aOk&&window.AudioEncoder&&window.OfflineAudioContext){ var acodec=o.testOpus?'opus':'mp4a.40.2', SR=o.testOpus?48000:44100;
+          mixP=AudioEncoder.isConfigSupported({codec:acodec,sampleRate:SR,numberOfChannels:2,bitrate:128000}).then(function(q){ if(!q.supported) return null;
+            var dc=new OfflineAudioContext(2,1,SR); return Promise.all([dc.decodeAudioData(buf.slice(0)),dc.decodeAudioData(o.bgm.slice(0))]).then(function(ab){
+              var n=Math.ceil(dur*SR), oc=new OfflineAudioContext(2,n,SR), v=oc.createBufferSource(); v.buffer=ab[0]; v.connect(oc.destination); v.start(0);
+              var b=oc.createBufferSource(), g=oc.createGain(), vol=o.bgmVol||0.14; b.buffer=ab[1]; b.loop=true; g.gain.setValueAtTime(0,0); g.gain.linearRampToValueAtTime(vol,0.4); g.gain.setValueAtTime(vol,Math.max(0.5,dur-1.2)); g.gain.linearRampToValueAtTime(0,dur); b.connect(g); g.connect(oc.destination); b.start(0);
+              return oc.startRendering().then(function(out){ return {buf:out,codec:acodec,sr:SR}; }); }); }).catch(function(){ return null; }); }
+        return mixP.then(function(mix){
         return new Promise(function(res,rej){ var caps=capTimes(script,dur), cv=document.createElement('canvas'); cv.width=W; cv.height=H; var ctx=cv.getContext('2d'), lay={}, dead=false, t0=null, nOut=0, nIn=0, N=m.V.length;
-          var mo={target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:W,height:H,frameRate:fps},fastStart:'in-memory',firstTimestampBehavior:'offset'}; if(aOk) mo.audio={codec:'aac',numberOfChannels:at.audio.channel_count,sampleRate:at.audio.sample_rate};
+          var mo={target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:W,height:H,frameRate:fps},fastStart:'in-memory',firstTimestampBehavior:'offset'}; if(mix) mo.audio={codec:mix.codec==='opus'?'opus':'aac',numberOfChannels:2,sampleRate:mix.sr}; else if(aOk) mo.audio={codec:'aac',numberOfChannels:at.audio.channel_count,sampleRate:at.audio.sample_rate};
           var mux=new Mp4Muxer.Muxer(mo), fail=function(msg){ if(dead) return; dead=true; rej(new Error(msg)); };
           var enc=new VideoEncoder({output:function(ch,meta){ mux.addVideoChunk(ch,meta); },error:function(e){ fail('영상을 만들다 멈췄어요: '+e.message); }});
           enc.configure({codec:codec,width:W,height:H,bitrate:W>=1080?7000000:4500000,framerate:fps});
@@ -165,8 +174,8 @@
           var OV={}; (o.overlays||[]).forEach(function(v){ OV[v.n]=v; });   // 일러스트·단색 장면: 그 구간은 영상 위를 그림으로 덮는다(소리는 그대로)
           function drawCap(t){ var c=null, ci=-1; for(var i=0;i<caps.length;i++) if(t>=caps[i].a&&t<caps[i].b){ c=caps[i]; ci=i; break; } if(!c) return;
             var ov=OV[ci]; if(ov){ var p=(t-c.a)/Math.max(0.1,c.b-c.a), al=Math.min(1,(t-c.a)/0.15,(c.b-t)/0.15+0.001); ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,al)); ctx.fillStyle='#16203a'; ctx.fillRect(0,0,W,H);
-              if(ov.kind==='art'&&ov.img){ var im=ov.img, k=Math.max(W/im.width,H/im.height)*(1+0.05*p), w2=im.width*k, h2=im.height*k; ctx.drawImage(im,(W-w2)/2,(H-h2)/2,w2,h2); } ctx.restore(); } if(c.chips&&c.chips.length) chipsDraw(ctx,W,H,c.chips,(t-c.a)/Math.max(0.1,c.b-c.a)); if(!c.cap) return;
-            capDraw(ctx,W,H*0.7,c.cap,c.hi,st,Math.min(1,(t-c.a)/0.12),lay); }
+              if(ov.kind==='art'&&ov.img){ var im=ov.img, k=Math.max(W/im.width,H/im.height)*(1+0.05*p), w2=im.width*k, h2=im.height*k; ctx.drawImage(im,(W-w2)/2,(H-h2)/2,w2,h2); } ctx.restore(); } if(c.chips&&c.chips.length) chipsDraw(ctx,W,H,c.chips,(t-c.a)/Math.max(0.1,c.b-c.a),!ov); if(!c.cap) return;
+            capDraw(ctx,W,H*0.77,c.cap,c.hi,st,Math.min(1,(t-c.a)/0.12),lay); }
           var dec=new VideoDecoder({output:function(fr){ if(dead){ fr.close(); return; } if(t0===null) t0=fr.timestamp; var ts=fr.timestamp-t0;
               ctx.drawImage(fr,0,0,W,H); drawCap(ts/1e6); var vf=new VideoFrame(cv,{timestamp:ts,duration:fr.duration||Math.round(1e6/fps)}); fr.close();
               enc.encode(vf,{keyFrame:nOut%fps===0}); vf.close(); nOut++; if(o.progress&&nOut%12===0) o.progress(nOut/N); },
@@ -176,8 +185,13 @@
             while(nIn<N&&dec.decodeQueueSize<8&&enc.encodeQueueSize<8&&nIn-nOut<24){ var sm=m.V[nIn++]; dec.decode(new EncodedVideoChunk({type:sm.is_sync?'key':'delta',timestamp:Math.round(sm.cts*1e6/sm.timescale),duration:Math.round(sm.duration*1e6/sm.timescale),data:sm.data})); }
             if(nIn<N) return setTimeout(feed,4);
             dec.flush().then(function(){ return enc.flush(); }).then(function(){ if(dead) return;
+              var done=function(){ mux.finalize(); res({blob:new Blob([mux.target.buffer],{type:'video/mp4'}),w:W,h:H,dur:dur,audio:aOk,bgm:!!mix,frames:nOut,caps:caps.filter(function(c){return c.cap||(c.chips&&c.chips.length);}).length}); };
+              if(mix){ var ae=new AudioEncoder({output:function(ch,meta){ mux.addAudioChunk(ch,meta); },error:function(e){ fail('소리를 섞다 멈췄어요: '+e.message); }}); ae.configure({codec:mix.codec,sampleRate:mix.sr,numberOfChannels:2,bitrate:128000});
+                var L=mix.buf.getChannelData(0), R=mix.buf.getChannelData(1), N2=mix.buf.length, step=4096;
+                for(var p0=0;p0<N2;p0+=step){ var k=Math.min(step,N2-p0), d=new Float32Array(k*2); d.set(L.subarray(p0,p0+k),0); d.set(R.subarray(p0,p0+k),k); var ad=new AudioData({format:'f32-planar',sampleRate:mix.sr,numberOfFrames:k,numberOfChannels:2,timestamp:Math.round(p0*1e6/mix.sr),data:d}); ae.encode(ad); ad.close(); }
+                return ae.flush().then(function(){ if(!dead) done(); }); }
               if(aOk) m.A.forEach(function(sm,i){ mux.addAudioChunkRaw(new Uint8Array(sm.data),'key',Math.round(sm.cts*1e6/sm.timescale),Math.round(sm.duration*1e6/sm.timescale),i===0?{decoderConfig:{codec:at.codec,numberOfChannels:at.audio.channel_count,sampleRate:at.audio.sample_rate,description:asc}}:undefined); });
-              mux.finalize(); res({blob:new Blob([mux.target.buffer],{type:'video/mp4'}),w:W,h:H,dur:dur,audio:aOk,frames:nOut,caps:caps.filter(function(c){return c.cap||(c.chips&&c.chips.length);}).length}); }).catch(function(e){ fail('영상을 마무리하지 못했어요: '+(e&&e.message||e)); }); })(); }); }); }); }
+              done(); }).catch(function(e){ fail('영상을 마무리하지 못했어요: '+(e&&e.message||e)); }); })(); }); }); }); }); }
   // 당근 글 나누기: 맨 위 "제목: …", "배너: 큰 글 | 강조 | 혜택 · 혜택" 두 줄과 본문
   function dgParts(text,fallbackTitle){ var L=String(text||'').replace(/\r/g,'').split('\n'), title='', ban=null, rest=[];
     L.forEach(function(l){ var m=l.match(/^\s*제목\s*[:：]\s*(.+)$/), b=l.match(/^\s*배너\s*[:：]\s*(.+)$/);
@@ -238,13 +252,15 @@
     out.forEach(function(o){ var h=o.cap.match(/<\s*(노란색|강조)\s*>([^<]*)<\s*\/\s*(노란색|강조)\s*>/); o.hi=h?h[2].trim():''; o.cap=o.cap.replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(); o.chips=chipList(o); });
     return out.filter(function(o){ return o.shot||o.say||o.cap; }).slice(0,10); }
   // 채널 글자 칩: 앱 로고는 그리지 않고, 채널 이름을 그 채널 색 칩으로 띄운다. "글자: 인스타 · 스레드 · 틱톡" 줄이 있으면 그대로, 없으면 화면 설명에 채널 이름이 셋 이상 나올 때 나온 순서대로 만든다
-  var CH=[['인스타그램','#E1306C'],['인스타','#E1306C'],['스레드','#000000'],['틱톡','#010101'],['네이버 블로그','#03C75A'],['블로그','#03C75A'],['당근','#FF6F0F'],['유튜브','#FF0000'],['카카오톡','#FEE500'],['카카오','#FEE500'],['페이스북','#1877F2'],['네이버','#03C75A']];
-  function chColor(t){ for(var i=0;i<CH.length;i++) if(t.indexOf(CH[i][0])>=0) return CH[i][1]; return ''; }
+  var CHIPC=[['인스타그램','#E1306C'],['인스타','#E1306C'],['스레드','#000000'],['틱톡','#010101'],['네이버 블로그','#03C75A'],['블로그','#03C75A'],['당근','#FF6F0F'],['유튜브','#FF0000'],['카카오톡','#FEE500'],['카카오','#FEE500'],['페이스북','#1877F2'],['네이버','#03C75A']];
+  function chColor(t){ for(var i=0;i<CHIPC.length;i++) if(t.indexOf(CHIPC[i][0])>=0) return CHIPC[i][1]; return ''; }
   function chipList(o){ var L=[]; if(o.words){ L=o.words.split(/\s*[·,，、\/]\s*/).map(function(t){return t.replace(/<[^>]*>/g,'').trim();}).filter(Boolean).slice(0,6); }
-    else { var t=o.shot||'', hit=[]; CH.forEach(function(c){ var i=t.indexOf(c[0]); if(i>=0&&!hit.some(function(h){ return h.i===i||h.c===c[1]; })) hit.push({i:i,t:c[0],c:c[1]}); }); if(hit.length>=3) L=hit.sort(function(a,b){return a.i-b.i;}).map(function(h){return h.t;}).slice(0,6); }
+    else { var t=o.shot||'', hit=[]; CHIPC.forEach(function(c){ var i=t.indexOf(c[0]); if(i>=0&&!hit.some(function(h){ return h.i===i||h.c===c[1]; })) hit.push({i:i,t:c[0],c:c[1]}); }); if(hit.length>=3) L=hit.sort(function(a,b){return a.i-b.i;}).map(function(h){return h.t;}).slice(0,6); }
     return L.map(function(t){ return {t:t,c:chColor(t)}; }); }
   // 칩을 화면 가운데 위쪽에 세로로 쌓는다. p(0~1)는 장면 안에서 흐른 정도: 하나씩 차례로 나타난다. p 가 없으면 전부 보인다
-  function chipsDraw(ctx,W,H,chips,p){ if(!chips||!chips.length) return; var n=chips.length, z=Math.round(W*(n>4?0.07:0.08)), ph=Math.round(z*1.75), gap=Math.round(z*0.42), total=n*ph+(n-1)*gap, y0=H*0.36-total/2;
+  function chipsDraw(ctx,W,H,chips,p,top){ if(!chips||!chips.length) return;   // top: 출연자가 보이는 장면에서는 얼굴을 가리지 않게 화면 맨 위쪽에 작게 둔다
+    var n=chips.length, z=Math.round(W*(top?0.058:n>4?0.07:0.08)); ctx.save(); ctx.font='800 '+z+'px '+F; var mw=0; chips.forEach(function(c){ mw=Math.max(mw,ctx.measureText(c.t).width+z*1.5); }); ctx.restore(); if(mw>W*0.88) z=Math.max(Math.round(W*0.04),Math.floor(z*W*0.88/mw));   // 긴 글자는 화면 폭에 맞게 줄인다
+    var ph=Math.round(z*1.75), gap=Math.round(z*0.42), total=n*ph+(n-1)*gap, y0=top?H*0.075:H*0.36-total/2;
     ctx.save(); ctx.font='800 '+z+'px '+F; ctx.textAlign='center'; ctx.textBaseline='middle';
     chips.forEach(function(c,i){ var k=p==null?1:Math.max(0,Math.min(1,(p-(i*0.7/n))/0.06)); if(k<=0) return; var w=ctx.measureText(c.t).width+z*1.5, sc=0.82+0.18*k, cy=y0+i*(ph+gap)+ph/2, dark=c.c==='#FEE500';
       ctx.save(); ctx.globalAlpha=k; ctx.translate(W/2,cy); ctx.scale(sc,sc); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=z*0.3; ctx.shadowOffsetY=z*0.08; ctx.fillStyle=c.c||'rgba(255,255,255,.96)'; rr(ctx,-w/2,-ph/2,w,ph,ph/2); ctx.fill(); ctx.shadowColor='transparent';
@@ -273,8 +289,8 @@
     var w=wordFit(ctx,sc.shot||'(화면 설명 없음)',VW-M*2-80,7,[54,48,44,40,36],'600'), lh=Math.round(w.size*1.42), y=330; ctx.fillStyle='#fff'; ctx.font='600 '+w.size+'px '+F; lines(ctx,w.lines.slice(0,7),M+40,y,lh); y+=lh*Math.min(7,w.lines.length)+34;
     if(sc.design&&y<960){ ctx.fillStyle=st.hi; ctx.font='700 34px '+F; ctx.fillText('디자인',M+40,y); y+=52; var d=wordFit(ctx,sc.design,VW-M*2-80,5,[40,36,32],'500'), dl=Math.round(d.size*1.45), mx=Math.max(1,Math.floor((1120-y)/dl)); ctx.fillStyle='rgba(255,255,255,.82)'; ctx.font='500 '+d.size+'px '+F; lines(ctx,d.lines.slice(0,mx),M+40,y,dl); }
     if(sc.chips&&sc.chips.length){ ctx.fillStyle='rgba(20,23,28,.86)'; rr(ctx,M+6,246,VW-M*2-12,888,32); ctx.fill(); chipsDraw(ctx,VW,VH,sc.chips,null); }
-    capDraw(ctx,VW,VH*0.7,sc.cap,sc.hi,st,1,null); ctx.textAlign='left'; ctx.textBaseline='top';
-    if(sc.say){ ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 34px '+F; ctx.fillText('말',M,1520); var sy=wordFit(ctx,'“'+sc.say+'”',VW-M*2,5,[50,46,42,38],'500'); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='500 '+sy.size+'px '+F; lines(ctx,sy.lines.slice(0,5),M,1572,Math.round(sy.size*1.45)); }
+    capDraw(ctx,VW,VH*0.77,sc.cap,sc.hi,st,1,null); ctx.textAlign='left'; ctx.textBaseline='top';
+    if(sc.say){ ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 34px '+F; ctx.fillText('말',M,1610); var sy=wordFit(ctx,'“'+sc.say+'”',VW-M*2,5,[50,46,42,38],'500'); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='500 '+sy.size+'px '+F; lines(ctx,sy.lines.slice(0,4),M,1660,Math.round(sy.size*1.45)); }
     return cv; }
   window.lfCards={ parse:parse,
     caption:caption, capTimes:capTimes,
