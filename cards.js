@@ -162,7 +162,7 @@
           mixP=AudioEncoder.isConfigSupported({codec:acodec,sampleRate:SR,numberOfChannels:2,bitrate:128000}).then(function(q){ if(!q.supported) return null;
             var dc=new OfflineAudioContext(2,1,SR); return Promise.all([dc.decodeAudioData(buf.slice(0)),dc.decodeAudioData(o.bgm.slice(0))]).then(function(ab){
               var n=Math.ceil(dur*SR), oc=new OfflineAudioContext(2,n,SR), v=oc.createBufferSource(); v.buffer=ab[0]; v.connect(oc.destination); v.start(0);
-              var b=oc.createBufferSource(), g=oc.createGain(), vol=o.bgmVol||0.14; b.buffer=ab[1]; b.loop=true; g.gain.setValueAtTime(0,0); g.gain.linearRampToValueAtTime(vol,0.4); g.gain.setValueAtTime(vol,Math.max(0.5,dur-1.2)); g.gain.linearRampToValueAtTime(0,dur); b.connect(g); g.connect(oc.destination); b.start(0);
+              var b=oc.createBufferSource(), g=oc.createGain(), vol=o.bgmVol||0.25; b.buffer=ab[1]; b.loop=true; g.gain.setValueAtTime(0,0); g.gain.linearRampToValueAtTime(vol,0.4); g.gain.setValueAtTime(vol,Math.max(0.5,dur-1.2)); g.gain.linearRampToValueAtTime(0,dur); b.connect(g); g.connect(oc.destination); b.start(0);
               return oc.startRendering().then(function(out){ return {buf:out,codec:acodec,sr:SR}; }); }); }).catch(function(){ return null; }); }
         return mixP.then(function(mix){
         return new Promise(function(res,rej){ var caps=capTimes(script,dur), cv=document.createElement('canvas'); cv.width=W; cv.height=H; var ctx=cv.getContext('2d'), lay={}, dead=false, t0=null, nOut=0, nIn=0, N=m.V.length;
@@ -173,7 +173,7 @@
           var st=capStyle(script);
           var OV={}; (o.overlays||[]).forEach(function(v){ OV[v.n]=v; });   // 일러스트·단색 장면: 그 구간은 영상 위를 그림으로 덮는다(소리는 그대로)
           function drawCap(t){ var c=null, ci=-1; for(var i=0;i<caps.length;i++) if(t>=caps[i].a&&t<caps[i].b){ c=caps[i]; ci=i; break; } if(!c) return;
-            var ov=OV[ci]; if(ov){ var p=(t-c.a)/Math.max(0.1,c.b-c.a), al=Math.min(1,(t-c.a)/0.15,(c.b-t)/0.15+0.001); ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,al)); ctx.fillStyle='#16203a'; ctx.fillRect(0,0,W,H);
+            var ov=OV[ci]; if(ov){ var p=(t-c.a)/Math.max(0.1,c.b-c.a), al=OV[ci-1]?1:Math.min(1,(t-c.a)/0.12); ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,al));   // 들어올 때만 살짝 번지고 끝은 바로 끊는다(끝에서 옅어지면 칩이 출연자 얼굴 위에 잠깐 남는다). 그림 장면이 이어지면 사이에 출연자가 비치지 않게 한다 ctx.fillStyle='#16203a'; ctx.fillRect(0,0,W,H);
               if(ov.kind==='art'&&ov.img){ var im=ov.img, k=Math.max(W/im.width,H/im.height)*(1+0.05*p), w2=im.width*k, h2=im.height*k; ctx.drawImage(im,(W-w2)/2,(H-h2)/2,w2,h2); } ctx.restore(); } if(c.chips&&c.chips.length) chipsDraw(ctx,W,H,c.chips,(t-c.a)/Math.max(0.1,c.b-c.a),!ov); if(!c.cap) return;
             capDraw(ctx,W,H*0.77,c.cap,c.hi,st,Math.min(1,(t-c.a)/0.12),lay); }
           var dec=new VideoDecoder({output:function(fr){ if(dead){ fr.close(); return; } if(t0===null) t0=fr.timestamp; var ts=fr.timestamp-t0;
