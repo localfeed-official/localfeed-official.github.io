@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1128f"></script>
+<script src="cards.js?v=1128g"></script>
 <script>
 (function(){
   var K=null;
@@ -293,6 +293,7 @@
         '<small style="display:block;margin-top:6px"><b>장면 '+(i+1)+'</b>'+(sc.time?' · '+esc(sc.time):'')+'</small>'+
         (sc.cap?'<div style="font-weight:800;font-size:14px;line-height:1.35;margin:4px 0;padding:4px 6px;border-radius:6px;background:#191F28;color:#fff;text-align:center">'+(sc.hi&&sc.cap.indexOf(sc.hi)>=0?esc(sc.cap).replace(esc(sc.hi),'<span style="color:#FFD600">'+esc(sc.hi)+'</span>'):esc(sc.cap))+'</div>':'')+
         (sc.say?'<small style="display:block;line-height:1.45">말: '+esc(sc.say)+'</small>':'')+
+        (sc.chips&&sc.chips.length?'<div style="margin:4px 0;display:flex;flex-wrap:wrap;gap:4px">'+sc.chips.map(function(c){return '<span style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;background:'+(c.c||'#F2F4F6')+';color:'+(!c.c||c.c==='#FEE500'?'#191F28':'#fff')+'">'+esc(c.t)+'</span>';}).join('')+'</div>':'')+
         (sc.design?'<small style="display:block;line-height:1.45;color:#8B95A1">디자인: '+esc(sc.design)+'</small>':'')+
         (can?'<button class="link" style="margin-top:4px" data-shfix="'+esc(x.id)+'|'+i+'">이 장면 고치기</button>':'')+'</div>'; }).join('')+'</div>'; }
   function whoHtml(s){ var w=(D.presenters||{})[s.code]||{state:''}, c=esc(s.code), busy='<div class="lfload inl"><i></i><i></i><i></i><small>', mins=w.at?Math.max(0,Math.round((Date.now()-w.at)/60000)):0;

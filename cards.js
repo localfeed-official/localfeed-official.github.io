@@ -132,8 +132,8 @@
   function loadMp4box(){ if(window.MP4Box) return Promise.resolve(); return new Promise(function(res,rej){ var s=document.createElement('script'); s.src='mp4box.js?v=1'; s.onload=function(){ res(); }; s.onerror=function(){ rej(new Error('영상 읽는 도구를 불러오지 못했어요.')); }; document.head.appendChild(s); }); }
   function capTimes(script,dur){ var S=shScenes(script), T=S.map(function(x){ var m=String(x.time).match(/(\d+(?:\.\d+)?)\s*[~\-–]\s*(\d+(?:\.\d+)?)/); return m?[+m[1],+m[2]]:null; }), end=0;
     T.forEach(function(t){ if(t) end=Math.max(end,t[1]); });
-    if(!end||T.some(function(t){return !t||t[1]<=t[0];})) return S.map(function(x,i){ return {a:dur*i/S.length,b:dur*(i+1)/S.length,cap:x.cap,hi:x.hi}; });
-    var k=dur/end; return S.map(function(x,i){ return {a:T[i][0]*k,b:T[i][1]*k,cap:x.cap,hi:x.hi}; }); }
+    if(!end||T.some(function(t){return !t||t[1]<=t[0];})) return S.map(function(x,i){ return {a:dur*i/S.length,b:dur*(i+1)/S.length,cap:x.cap,hi:x.hi,chips:x.chips}; });
+    var k=dur/end; return S.map(function(x,i){ return {a:T[i][0]*k,b:T[i][1]*k,cap:x.cap,hi:x.hi,chips:x.chips}; }); }
   function caption(buf,script,o){ o=o||{};
     if(!window.VideoEncoder||!window.VideoDecoder) return Promise.reject(new Error('이 브라우저는 영상을 다시 만들지 못해요. 크롬에서 해 주세요.'));
     var fonts=document.fonts&&document.fonts.load?document.fonts.load("800 60px 'Gothic A1'").catch(function(){}):Promise.resolve();
@@ -162,7 +162,7 @@
           var enc=new VideoEncoder({output:function(ch,meta){ mux.addVideoChunk(ch,meta); },error:function(e){ fail('영상을 만들다 멈췄어요: '+e.message); }});
           enc.configure({codec:codec,width:W,height:H,bitrate:W>=1080?7000000:4500000,framerate:fps});
           var st=capStyle(script);
-          function drawCap(t){ var c=null; for(var i=0;i<caps.length;i++) if(t>=caps[i].a&&t<caps[i].b){ c=caps[i]; break; } if(!c||!c.cap) return;
+          function drawCap(t){ var c=null; for(var i=0;i<caps.length;i++) if(t>=caps[i].a&&t<caps[i].b){ c=caps[i]; break; } if(!c) return; if(c.chips&&c.chips.length) chipsDraw(ctx,W,H,c.chips,(t-c.a)/Math.max(0.1,c.b-c.a)); if(!c.cap) return;
             capDraw(ctx,W,H*0.7,c.cap,c.hi,st,Math.min(1,(t-c.a)/0.12),lay); }
           var dec=new VideoDecoder({output:function(fr){ if(dead){ fr.close(); return; } if(t0===null) t0=fr.timestamp; var ts=fr.timestamp-t0;
               ctx.drawImage(fr,0,0,W,H); drawCap(ts/1e6); var vf=new VideoFrame(cv,{timestamp:ts,duration:fr.duration||Math.round(1e6/fps)}); fr.close();
@@ -174,7 +174,7 @@
             if(nIn<N) return setTimeout(feed,4);
             dec.flush().then(function(){ return enc.flush(); }).then(function(){ if(dead) return;
               if(aOk) m.A.forEach(function(sm,i){ mux.addAudioChunkRaw(new Uint8Array(sm.data),'key',Math.round(sm.cts*1e6/sm.timescale),Math.round(sm.duration*1e6/sm.timescale),i===0?{decoderConfig:{codec:at.codec,numberOfChannels:at.audio.channel_count,sampleRate:at.audio.sample_rate,description:asc}}:undefined); });
-              mux.finalize(); res({blob:new Blob([mux.target.buffer],{type:'video/mp4'}),w:W,h:H,dur:dur,audio:aOk,frames:nOut,caps:caps.filter(function(c){return c.cap;}).length}); }).catch(function(e){ fail('영상을 마무리하지 못했어요: '+(e&&e.message||e)); }); })(); }); }); }); }
+              mux.finalize(); res({blob:new Blob([mux.target.buffer],{type:'video/mp4'}),w:W,h:H,dur:dur,audio:aOk,frames:nOut,caps:caps.filter(function(c){return c.cap||(c.chips&&c.chips.length);}).length}); }).catch(function(e){ fail('영상을 마무리하지 못했어요: '+(e&&e.message||e)); }); })(); }); }); }); }
   // 당근 글 나누기: 맨 위 "제목: …", "배너: 큰 글 | 강조 | 혜택 · 혜택" 두 줄과 본문
   function dgParts(text,fallbackTitle){ var L=String(text||'').replace(/\r/g,'').split('\n'), title='', ban=null, rest=[];
     L.forEach(function(l){ var m=l.match(/^\s*제목\s*[:：]\s*(.+)$/), b=l.match(/^\s*배너\s*[:：]\s*(.+)$/);
@@ -227,13 +227,27 @@
   // 쇼츠 대본("1. (0~3초) 화면: … | 말: … | 자막: …")을 장면으로 나누고, 장면마다 스토리보드 그림(세로)을 그린다
   // 쇼츠 대본 읽기. 두 가지 꼴을 다 받는다: 한 줄 꼴 "1. (0~3초) 화면: … | 말: … | 자막: …" 과, 번호 줄 아래에 "화면: / 디자인: / 말: / 자막:" 을 한 줄씩 적은 꼴.
   // 자막 안의 <노란색>단어</노란색> 는 그 단어만 강조색으로 그린다
-  function shScenes(script){ var out=[], cur=null, K={'화면':'shot','디자인':'design','말':'say','자막':'cap'};
-    function feed(t,head){ String(t||'').split(/\s*\|\s*/).forEach(function(p){ var q=p.match(/^\s*(화면|디자인|말|자막)\s*[:：]\s*(.*)$/); if(q) cur[K[q[1]]]=q[2].trim(); else if(head&&!cur.shot&&p.trim()) cur.shot=p.trim(); }); }
+  function shScenes(script){ var out=[], cur=null, K={'화면':'shot','디자인':'design','말':'say','자막':'cap','글자':'words'};
+    function feed(t,head){ String(t||'').split(/\s*\|\s*/).forEach(function(p){ var q=p.match(/^\s*(화면|디자인|말|자막|글자)\s*[:：]\s*(.*)$/); if(q) cur[K[q[1]]]=q[2].trim(); else if(head&&!cur.shot&&p.trim()) cur.shot=p.trim(); }); }
     String(script||'').replace(/\r/g,'').split('\n').forEach(function(l){ var m=l.match(/^\s*(\d+)\s*[.)]\s*(?:\(([^)]*)\))?\s*(.*)$/);
-      if(m&&(m[2]||/(화면|말|자막)\s*[:：]/.test(m[3]))){ cur={n:m[1],time:(m[2]||'').trim(),shot:'',design:'',say:'',cap:''}; out.push(cur); feed(m[3],true); return; }
-      if(cur&&/^\s*(화면|디자인|말|자막)\s*[:：]/.test(l)) feed(l,false); });
-    out.forEach(function(o){ var h=o.cap.match(/<\s*(노란색|강조)\s*>([^<]*)<\s*\/\s*(노란색|강조)\s*>/); o.hi=h?h[2].trim():''; o.cap=o.cap.replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(); });
+      if(m&&(m[2]||/(화면|말|자막)\s*[:：]/.test(m[3]))){ cur={n:m[1],time:(m[2]||'').trim(),shot:'',design:'',say:'',cap:'',words:''}; out.push(cur); feed(m[3],true); return; }
+      if(cur&&/^\s*(화면|디자인|말|자막|글자)\s*[:：]/.test(l)) feed(l,false); });
+    out.forEach(function(o){ var h=o.cap.match(/<\s*(노란색|강조)\s*>([^<]*)<\s*\/\s*(노란색|강조)\s*>/); o.hi=h?h[2].trim():''; o.cap=o.cap.replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(); o.chips=chipList(o); });
     return out.filter(function(o){ return o.shot||o.say||o.cap; }).slice(0,10); }
+  // 채널 글자 칩: 앱 로고는 그리지 않고, 채널 이름을 그 채널 색 칩으로 띄운다. "글자: 인스타 · 스레드 · 틱톡" 줄이 있으면 그대로, 없으면 화면 설명에 채널 이름이 셋 이상 나올 때 나온 순서대로 만든다
+  var CH=[['인스타그램','#E1306C'],['인스타','#E1306C'],['스레드','#000000'],['틱톡','#FE2C55'],['네이버 블로그','#03C75A'],['블로그','#03C75A'],['당근','#FF6F0F'],['유튜브','#FF0000'],['카카오톡','#FEE500'],['카카오','#FEE500'],['페이스북','#1877F2'],['네이버','#03C75A']];
+  function chColor(t){ for(var i=0;i<CH.length;i++) if(t.indexOf(CH[i][0])>=0) return CH[i][1]; return ''; }
+  function chipList(o){ var L=[]; if(o.words){ L=o.words.split(/\s*[·,，、\/]\s*/).map(function(t){return t.replace(/<[^>]*>/g,'').trim();}).filter(Boolean).slice(0,6); }
+    else { var t=o.shot||'', hit=[]; CH.forEach(function(c){ var i=t.indexOf(c[0]); if(i>=0&&!hit.some(function(h){ return h.i===i||h.c===c[1]; })) hit.push({i:i,t:c[0],c:c[1]}); }); if(hit.length>=3) L=hit.sort(function(a,b){return a.i-b.i;}).map(function(h){return h.t;}).slice(0,6); }
+    return L.map(function(t){ return {t:t,c:chColor(t)}; }); }
+  // 칩을 화면 가운데 위쪽에 세로로 쌓는다. p(0~1)는 장면 안에서 흐른 정도: 하나씩 차례로 나타난다. p 가 없으면 전부 보인다
+  function chipsDraw(ctx,W,H,chips,p){ if(!chips||!chips.length) return; var n=chips.length, z=Math.round(W*(n>4?0.07:0.08)), ph=Math.round(z*1.75), gap=Math.round(z*0.42), total=n*ph+(n-1)*gap, y0=H*0.36-total/2;
+    ctx.save(); ctx.font='800 '+z+'px '+F; ctx.textAlign='center'; ctx.textBaseline='middle';
+    chips.forEach(function(c,i){ var k=p==null?1:Math.max(0,Math.min(1,(p-(i*0.7/n))/0.06)); if(k<=0) return; var w=ctx.measureText(c.t).width+z*1.5, sc=0.82+0.18*k, cy=y0+i*(ph+gap)+ph/2, dark=c.c==='#FEE500';
+      ctx.save(); ctx.globalAlpha=k; ctx.translate(W/2,cy); ctx.scale(sc,sc); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=z*0.3; ctx.shadowOffsetY=z*0.08; ctx.fillStyle=c.c||'rgba(255,255,255,.96)'; rr(ctx,-w/2,-ph/2,w,ph,ph/2); ctx.fill(); ctx.shadowColor='transparent';
+      if(c.c==='#000000'){ ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=Math.max(2,z*0.05); rr(ctx,-w/2,-ph/2,w,ph,ph/2); ctx.stroke(); }
+      ctx.fillStyle=(!c.c||dark)?'#191F28':'#fff'; ctx.fillText(c.t,0,z*0.04); ctx.restore(); });
+    ctx.restore(); }
   // 자막 모양: 대본이 "검은 … 바"를 말하면 검은 반투명 바 위 흰 글씨, 아니면 검은 테두리 흰 글씨. 강조색은 대본에 적힌 #색, 없으면 노랑
   function capStyle(script){ var t=String(script||''), c=t.match(/#([0-9a-fA-F]{6})\b/); return {bar:/검은[^.\n]{0,14}(바|띠|바탕)/.test(t), hi:c?'#'+c[1]:'#FFD600'}; }
   function capLine(ctx,text,hi,cx,y,st,stroke){ var i=hi?text.indexOf(hi):-1, parts=i<0?[[text,0]]:[[text.slice(0,i),0],[hi,1],[text.slice(i+hi.length),0]], w=ctx.measureText(text).width, x=cx-w/2; ctx.textAlign='left';
@@ -254,6 +268,7 @@
     ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 34px '+F; ctx.fillText('화면',M+40,272);
     var w=wordFit(ctx,sc.shot||'(화면 설명 없음)',VW-M*2-80,7,[54,48,44,40,36],'600'), lh=Math.round(w.size*1.42), y=330; ctx.fillStyle='#fff'; ctx.font='600 '+w.size+'px '+F; lines(ctx,w.lines.slice(0,7),M+40,y,lh); y+=lh*Math.min(7,w.lines.length)+34;
     if(sc.design&&y<960){ ctx.fillStyle=st.hi; ctx.font='700 34px '+F; ctx.fillText('디자인',M+40,y); y+=52; var d=wordFit(ctx,sc.design,VW-M*2-80,5,[40,36,32],'500'), dl=Math.round(d.size*1.45), mx=Math.max(1,Math.floor((1120-y)/dl)); ctx.fillStyle='rgba(255,255,255,.82)'; ctx.font='500 '+d.size+'px '+F; lines(ctx,d.lines.slice(0,mx),M+40,y,dl); }
+    if(sc.chips&&sc.chips.length){ ctx.fillStyle='rgba(20,23,28,.86)'; rr(ctx,M+6,246,VW-M*2-12,888,32); ctx.fill(); chipsDraw(ctx,VW,VH,sc.chips,null); }
     capDraw(ctx,VW,VH*0.7,sc.cap,sc.hi,st,1,null); ctx.textAlign='left'; ctx.textBaseline='top';
     if(sc.say){ ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 34px '+F; ctx.fillText('말',M,1520); var sy=wordFit(ctx,'“'+sc.say+'”',VW-M*2,5,[50,46,42,38],'500'); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='500 '+sy.size+'px '+F; lines(ctx,sy.lines.slice(0,5),M,1572,Math.round(sy.size*1.45)); }
     return cv; }
