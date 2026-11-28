@@ -24,7 +24,7 @@
   </main>
 </div>
 <script src="config.js"></script>
-<script src="cards.js?v=1128d"></script>
+<script src="cards.js?v=1128f"></script>
 <script>
 (function(){
   var K=null;
@@ -291,8 +291,9 @@
     return '<small><b>스토리보드</b> 실제 장면 그림이에요. 이 순서로 이어져요.'+(x.ok?' <span class="chip ok">확정</span>':'')+'</small><div class="wm" style="align-items:flex-start">'+x.board.map(function(u,i){ var sc=S[i]||{};
       return '<div style="width:190px;flex:0 0 190px"><a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy" alt="" style="width:190px;height:338px;object-fit:cover;border-radius:10px;display:block"></a>'+
         '<small style="display:block;margin-top:6px"><b>장면 '+(i+1)+'</b>'+(sc.time?' · '+esc(sc.time):'')+'</small>'+
-        (sc.cap?'<div style="font-weight:800;font-size:14px;line-height:1.35;margin:2px 0">'+esc(sc.cap)+'</div>':'')+
+        (sc.cap?'<div style="font-weight:800;font-size:14px;line-height:1.35;margin:4px 0;padding:4px 6px;border-radius:6px;background:#191F28;color:#fff;text-align:center">'+(sc.hi&&sc.cap.indexOf(sc.hi)>=0?esc(sc.cap).replace(esc(sc.hi),'<span style="color:#FFD600">'+esc(sc.hi)+'</span>'):esc(sc.cap))+'</div>':'')+
         (sc.say?'<small style="display:block;line-height:1.45">말: '+esc(sc.say)+'</small>':'')+
+        (sc.design?'<small style="display:block;line-height:1.45;color:#8B95A1">디자인: '+esc(sc.design)+'</small>':'')+
         (can?'<button class="link" style="margin-top:4px" data-shfix="'+esc(x.id)+'|'+i+'">이 장면 고치기</button>':'')+'</div>'; }).join('')+'</div>'; }
   function whoHtml(s){ var w=(D.presenters||{})[s.code]||{state:''}, c=esc(s.code), busy='<div class="lfload inl"><i></i><i></i><i></i><small>', mins=w.at?Math.max(0,Math.round((Date.now()-w.at)/60000)):0;
     var make='<button class="btn sm'+(w.state==='ready'?' gray':'')+'" data-who="make" data-store="'+c+'">'+(w.state==='cands'?'후보 다시 만들기':'가상 인물 만들기')+'</button><button class="btn sm gray" data-whoup="'+c+'|own">본인 사진 그대로 등록</button><button class="btn sm gray" data-whoref="'+c+'">참고 사진으로 만들기</button>';
@@ -314,7 +315,7 @@
         (x.run?'<div class="lfload inl"><i></i><i></i><i></i><small>'+(x.run==='pics'?'장면 그림을 만드는 중이에요. 1~3분쯤 걸려요.':'영상을 만드는 중이에요'+(x.res?' ('+esc(x.res)+')':'')+'. 3~10분쯤 걸려요.')+'</small></div>':'')+
         (x.memo?'<div class="caution" style="margin:8px 0">'+esc(x.memo)+'</div>':'')+
         '<small>'+esc(x.stage==='스토리보드'&&x.pics?(x.ok?'스토리보드를 확정했어요. 이제 영상을 만들 수 있어요. 영상은 1초에 약 200~600원이 들어요.':'장면마다 그림·자막·말을 보고, 고칠 곳은 그 장면의 "이 장면 고치기"에 말로 적어 주세요. 다 좋으면 "이 스토리보드로 확정"을 눌러야 영상을 만들 수 있어요.'):next[x.stage]||'')+'</small>'+
-        '<div class="acts" style="margin-top:8px">'+(x.stage==='추천'?'<button class="btn sm" data-sh="pick" data-id="'+esc(x.id)+'">이걸로 할게요</button>':'')+(x.stage==='선택'||x.stage==='기획'?'<button class="btn sm'+(x.stage==='기획'?' gray':'')+'" data-shup="'+esc(x.id)+'">'+(x.stage==='기획'?'참고 영상 다시 올리기':'참고 영상 파일 올리기')+'</button>':'')+(x.stage==='기획'||x.stage==='기획 확정'?'<button class="btn sm" data-shboard="'+esc(x.id)+'">좋아요, 스토리보드 그리기</button>':'')+(x.run?'<button class="btn sm gray" data-sh="stop" data-id="'+esc(x.id)+'">그만두기</button>':'')+
+        '<div class="acts" style="margin-top:8px">'+(x.stage==='추천'?'<button class="btn sm" data-sh="pick" data-id="'+esc(x.id)+'">이걸로 할게요</button>':'')+(x.stage==='선택'||x.stage==='기획'?'<button class="btn sm'+(x.stage==='기획'?' gray':'')+'" data-shup="'+esc(x.id)+'">'+(x.stage==='기획'?'참고 영상 다시 올리기':'참고 영상 파일 올리기')+'</button>':'')+(x.stage==='기획'||x.stage==='기획 확정'?'<button class="btn sm" data-shboard="'+esc(x.id)+'">좋아요, 스토리보드 그리기</button>':'')+(x.stage==='스토리보드'&&!x.pics&&!x.run?'<button class="btn sm gray" data-shboard="'+esc(x.id)+'">글자 스토리보드 다시 그리기</button>':'')+(x.run?'<button class="btn sm gray" data-sh="stop" data-id="'+esc(x.id)+'">그만두기</button>':'')+
           (x.stage==='스토리보드'&&!x.run?'<button class="btn sm'+(x.pics?' gray':'')+'" data-shpics="'+esc(x.id)+'">'+(x.pics?'장면 그림 전부 다시 만들기':'실제 장면 그림 만들기')+'</button>':'')+
           (x.stage==='스토리보드'&&x.pics&&!x.ok&&!x.run?'<button class="btn sm" data-sh="pics_ok" data-id="'+esc(x.id)+'">이 스토리보드로 확정</button>':'')+
           (((x.stage==='스토리보드'&&x.ok)||x.stage==='완성')&&x.pics&&!x.run?'<button class="btn sm'+(x.stage==='완성'?' gray':'')+'" data-shmake="'+esc(x.id)+'|480p">영상 '+(x.stage==='완성'?'다시 ':'')+'만들기 · 시험용(480p)</button><button class="btn sm'+(x.stage==='완성'?' gray':'')+'" data-shmake="'+esc(x.id)+'|720p">영상 '+(x.stage==='완성'?'다시 ':'')+'만들기 · 게시용(720p)</button>':'')+(x.stage==='완성'&&!x.run?'<button class="btn sm'+(x.cap?' gray':'')+'" data-shcap="'+esc(x.id)+'">'+(x.cap?'자막 다시 넣기':'자막 넣기')+'</button>':'')+(x.stage==='완성'?'<button class="btn sm" data-sh="posted" data-id="'+esc(x.id)+'">올렸어요</button>':'')+((x.stage==='기획'||x.stage==='스토리보드')&&!x.run?'<button class="btn sm gray" data-sh="fix" data-id="'+esc(x.id)+'">'+(x.pics?'대본 전체 고치기':'고쳐 주세요')+'</button>':'')+(x.stage!=='게시'?'<button class="btn sm gray" data-sh="drop" data-id="'+esc(x.id)+'">빼기</button>':'')+'</div></div>'; };
@@ -460,7 +461,7 @@
       inp.click(); };});
     // 스토리보드: 대본을 장면 그림으로 그려 올린다
     [].forEach.call(document.querySelectorAll('[data-shboard]'),function(b){ if(BUSY.sh) b.disabled=true; b.onclick=function(){ var x=(D.shorts||[]).filter(function(s){return s.id===b.dataset.shboard;})[0]; if(!x) return; var st=D.stores.filter(function(s){return s.code===x.store;})[0]||{};
-      var L=[]; try{ L=lfCards.shBoard(x.script,{color:st.color||''}); }catch(e){ L=[]; } if(L.length<3) return say('대본에서 장면을 읽지 못했어요. "1. (0~3초) 화면: … | 말: … | 자막: …" 꼴인지 봐 주세요.');
+      var L=[]; try{ L=lfCards.shBoard(x.script,{color:st.color||''}); }catch(e){ L=[]; } if(L.length<3) return say('대본에서 장면을 읽지 못했어요. 장면마다 "1. (0~3초)" 줄과 그 아래 "화면: / 말: / 자막:" 줄이 있는지 봐 주세요.');
       BUSY.sh=true; b.disabled=true; var J=job('스토리보드 그리는 중');
       var small=L.map(function(cv){ var s=document.createElement('canvas'); s.width=720; s.height=1280; s.getContext('2d').drawImage(cv,0,0,720,1280); return s.toDataURL('image/jpeg',0.85).split(',')[1]; });
       _api({action:'admin_shorts',k:K,what:'board',id:x.id,value:JSON.stringify(small)}).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); BUSY.sh=false; J.end(); render(); say('스토리보드가 나왔어요.',true); }).catch(function(e){ BUSY.sh=false; J.end(); render(); if(/^LOGIN/.test(e.message)) return logout(true); say('스토리보드: '+e.message); }); };});

@@ -132,8 +132,8 @@
   function loadMp4box(){ if(window.MP4Box) return Promise.resolve(); return new Promise(function(res,rej){ var s=document.createElement('script'); s.src='mp4box.js?v=1'; s.onload=function(){ res(); }; s.onerror=function(){ rej(new Error('영상 읽는 도구를 불러오지 못했어요.')); }; document.head.appendChild(s); }); }
   function capTimes(script,dur){ var S=shScenes(script), T=S.map(function(x){ var m=String(x.time).match(/(\d+(?:\.\d+)?)\s*[~\-–]\s*(\d+(?:\.\d+)?)/); return m?[+m[1],+m[2]]:null; }), end=0;
     T.forEach(function(t){ if(t) end=Math.max(end,t[1]); });
-    if(!end||T.some(function(t){return !t||t[1]<=t[0];})) return S.map(function(x,i){ return {a:dur*i/S.length,b:dur*(i+1)/S.length,cap:x.cap}; });
-    var k=dur/end; return S.map(function(x,i){ return {a:T[i][0]*k,b:T[i][1]*k,cap:x.cap}; }); }
+    if(!end||T.some(function(t){return !t||t[1]<=t[0];})) return S.map(function(x,i){ return {a:dur*i/S.length,b:dur*(i+1)/S.length,cap:x.cap,hi:x.hi}; });
+    var k=dur/end; return S.map(function(x,i){ return {a:T[i][0]*k,b:T[i][1]*k,cap:x.cap,hi:x.hi}; }); }
   function caption(buf,script,o){ o=o||{};
     if(!window.VideoEncoder||!window.VideoDecoder) return Promise.reject(new Error('이 브라우저는 영상을 다시 만들지 못해요. 크롬에서 해 주세요.'));
     var fonts=document.fonts&&document.fonts.load?document.fonts.load("800 60px 'Gothic A1'").catch(function(){}):Promise.resolve();
@@ -161,11 +161,9 @@
           var mux=new Mp4Muxer.Muxer(mo), fail=function(msg){ if(dead) return; dead=true; rej(new Error(msg)); };
           var enc=new VideoEncoder({output:function(ch,meta){ mux.addVideoChunk(ch,meta); },error:function(e){ fail('영상을 만들다 멈췄어요: '+e.message); }});
           enc.configure({codec:codec,width:W,height:H,bitrate:W>=1080?7000000:4500000,framerate:fps});
+          var st=capStyle(script);
           function drawCap(t){ var c=null; for(var i=0;i<caps.length;i++) if(t>=caps[i].a&&t<caps[i].b){ c=caps[i]; break; } if(!c||!c.cap) return;
-            var L=lay[c.cap]; if(!L){ var z=Math.round(W*0.088); L=lay[c.cap]=niceFit(ctx,c.cap,W*0.84,[z,Math.round(z*0.9),Math.round(z*0.8),Math.round(z*0.7),Math.round(z*0.6)],'800',Math.round(z*0.8)); }
-            var lh=Math.round(L.size*1.26), y=H*0.7-(L.lines.length-1)*lh/2, a=Math.min(1,(t-c.a)/0.12);
-            ctx.save(); ctx.globalAlpha=a; ctx.font='800 '+L.size+'px '+F; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round'; ctx.lineWidth=Math.max(6,L.size*0.2); ctx.strokeStyle='rgba(0,0,0,.92)'; ctx.fillStyle='#fff';
-            L.lines.forEach(function(s,i){ ctx.strokeText(s,W/2,y+i*lh); }); L.lines.forEach(function(s,i){ ctx.fillText(s,W/2,y+i*lh); }); ctx.restore(); }
+            capDraw(ctx,W,H*0.7,c.cap,c.hi,st,Math.min(1,(t-c.a)/0.12),lay); }
           var dec=new VideoDecoder({output:function(fr){ if(dead){ fr.close(); return; } if(t0===null) t0=fr.timestamp; var ts=fr.timestamp-t0;
               ctx.drawImage(fr,0,0,W,H); drawCap(ts/1e6); var vf=new VideoFrame(cv,{timestamp:ts,duration:fr.duration||Math.round(1e6/fps)}); fr.close();
               enc.encode(vf,{keyFrame:nOut%fps===0}); vf.close(); nOut++; if(o.progress&&nOut%12===0) o.progress(nOut/N); },
@@ -227,24 +225,41 @@
     if(sb){ ctx.fillStyle=dark?'rgba(255,255,255,.9)':'#4E5968'; ctx.font='600 '+sb.size+'px '+F; lines(ctx,sb.lines,M,y,lh2); }
     return cv; }
   // 쇼츠 대본("1. (0~3초) 화면: … | 말: … | 자막: …")을 장면으로 나누고, 장면마다 스토리보드 그림(세로)을 그린다
-  function shScenes(script){ return String(script||'').split('\n').map(function(l){ var m=l.match(/^\s*(\d+)\s*[.)]\s*(?:\(([^)]*)\))?\s*(.+)$/); if(!m) return null; var o={n:m[1],time:(m[2]||'').trim(),shot:'',say:'',cap:''};
-      m[3].split(/\s*\|\s*/).forEach(function(p){ var q=p.match(/^(화면|말|자막)\s*[:：]\s*(.*)$/); if(q) o[{'화면':'shot','말':'say','자막':'cap'}[q[1]]]=q[2].trim(); else if(!o.shot) o.shot=p.trim(); }); return (o.shot||o.say||o.cap)?o:null; }).filter(Boolean).slice(0,10); }
-  function shDraw(sc,i,n,o){ var VW=1080,VH=1920, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o.color), M=80;
+  // 쇼츠 대본 읽기. 두 가지 꼴을 다 받는다: 한 줄 꼴 "1. (0~3초) 화면: … | 말: … | 자막: …" 과, 번호 줄 아래에 "화면: / 디자인: / 말: / 자막:" 을 한 줄씩 적은 꼴.
+  // 자막 안의 <노란색>단어</노란색> 는 그 단어만 강조색으로 그린다
+  function shScenes(script){ var out=[], cur=null, K={'화면':'shot','디자인':'design','말':'say','자막':'cap'};
+    function feed(t,head){ String(t||'').split(/\s*\|\s*/).forEach(function(p){ var q=p.match(/^\s*(화면|디자인|말|자막)\s*[:：]\s*(.*)$/); if(q) cur[K[q[1]]]=q[2].trim(); else if(head&&!cur.shot&&p.trim()) cur.shot=p.trim(); }); }
+    String(script||'').replace(/\r/g,'').split('\n').forEach(function(l){ var m=l.match(/^\s*(\d+)\s*[.)]\s*(?:\(([^)]*)\))?\s*(.*)$/);
+      if(m&&(m[2]||/(화면|말|자막)\s*[:：]/.test(m[3]))){ cur={n:m[1],time:(m[2]||'').trim(),shot:'',design:'',say:'',cap:''}; out.push(cur); feed(m[3],true); return; }
+      if(cur&&/^\s*(화면|디자인|말|자막)\s*[:：]/.test(l)) feed(l,false); });
+    out.forEach(function(o){ var h=o.cap.match(/<\s*(노란색|강조)\s*>([^<]*)<\s*\/\s*(노란색|강조)\s*>/); o.hi=h?h[2].trim():''; o.cap=o.cap.replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(); });
+    return out.filter(function(o){ return o.shot||o.say||o.cap; }).slice(0,10); }
+  // 자막 모양: 대본이 "검은 … 바"를 말하면 검은 반투명 바 위 흰 글씨, 아니면 검은 테두리 흰 글씨. 강조색은 대본에 적힌 #색, 없으면 노랑
+  function capStyle(script){ var t=String(script||''), c=t.match(/#([0-9a-fA-F]{6})\b/); return {bar:/검은[^.\n]{0,14}(바|띠|바탕)/.test(t), hi:c?'#'+c[1]:'#FFD600'}; }
+  function capLine(ctx,text,hi,cx,y,st,stroke){ var i=hi?text.indexOf(hi):-1, parts=i<0?[[text,0]]:[[text.slice(0,i),0],[hi,1],[text.slice(i+hi.length),0]], w=ctx.measureText(text).width, x=cx-w/2; ctx.textAlign='left';
+    parts.forEach(function(p){ if(!p[0]) return; if(stroke) ctx.strokeText(p[0],x,y); x+=ctx.measureText(p[0]).width; }); x=cx-w/2;
+    parts.forEach(function(p){ if(!p[0]) return; ctx.fillStyle=p[1]?st.hi:'#fff'; ctx.fillText(p[0],x,y); x+=ctx.measureText(p[0]).width; }); }
+  // 화면 폭 W, 가운데 높이 cy 에 자막을 그린다(완성 영상과 스토리보드가 같은 함수를 쓴다)
+  function capDraw(ctx,W,cy,cap,hi,st,alpha,cache){ if(!cap) return; var L=cache&&cache[cap]; if(!L){ var z=Math.round(W*(st.bar?0.074:0.088)); L=niceFit(ctx,cap,W*(st.bar?0.8:0.84),[z,Math.round(z*0.9),Math.round(z*0.8),Math.round(z*0.7),Math.round(z*0.6)],'800',Math.round(z*0.8)); if(cache) cache[cap]=L; }
+    var lh=Math.round(L.size*1.3), y=cy-(L.lines.length-1)*lh/2; ctx.save(); ctx.globalAlpha=alpha==null?1:alpha; ctx.font='800 '+L.size+'px '+F; ctx.textBaseline='middle';
+    if(st.bar){ var bh=lh*L.lines.length+Math.round(L.size*0.7); ctx.fillStyle='rgba(0,0,0,.62)'; ctx.fillRect(0,cy-bh/2,W,bh); L.lines.forEach(function(t,i){ capLine(ctx,t,hi,W/2,y+i*lh,st,false); }); }
+    else { ctx.lineJoin='round'; ctx.lineWidth=Math.max(6,L.size*0.2); ctx.strokeStyle='rgba(0,0,0,.92)'; L.lines.forEach(function(t,i){ capLine(ctx,t,hi,W/2,y+i*lh,st,true); }); }
+    ctx.restore(); }
+  // 글자 스토리보드 한 장: 휴대폰 화면처럼 그린다. 화면·디자인 메모는 가운데, 자막은 완성 영상과 같은 자리·같은 모양으로, 말은 맨 아래
+  function shDraw(sc,i,n,o){ var VW=1080,VH=1920, cv=document.createElement('canvas'); cv.width=VW; cv.height=VH; var ctx=cv.getContext('2d'), col=hex(o.color), M=80, st=o.style||{bar:false,hi:'#FFD600'};
     ctx.fillStyle='#14171C'; ctx.fillRect(0,0,VW,VH); ctx.textBaseline='top';
-    // 위: 장면 번호와 시간
-    ctx.fillStyle=col; rr(ctx,M,150,150,84,42); ctx.fill(); ctx.fillStyle='#fff'; ctx.font='800 46px '+F; ctx.textAlign='center'; ctx.fillText((i+1)+' / '+n,M+75,168); ctx.textAlign='left';
-    if(sc.time){ ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='600 42px '+F; ctx.fillText(sc.time,M+180,170); }
-    // 가운데: 화면 설명(촬영 메모)
-    ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=4; ctx.setLineDash([18,14]); rr(ctx,M,300,VW-M*2,760,36); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 36px '+F; ctx.fillText('화면',M+40,336);
-    var w=wordFit(ctx,sc.shot||'(화면 설명 없음)',VW-M*2-80,8,[60,54,48,42],'600'); ctx.fillStyle='#fff'; ctx.font='600 '+w.size+'px '+F; lines(ctx,w.lines,M+40,410,Math.round(w.size*1.45));
-    // 아래: 자막(크게)과 말
-    var y=1130; if(sc.cap){ var cp=niceFit(ctx,sc.cap,VW-M*2-60,[104,92,80,70,60],'800',80), lh=Math.round(cp.size*1.22), bh=lh*cp.lines.length+56; ctx.fillStyle=col; rr(ctx,M,y,VW-M*2,bh,30); ctx.fill(); ctx.fillStyle='#fff'; ctx.font='800 '+cp.size+'px '+F; lines(ctx,cp.lines,M+30,y+30,lh); y+=bh+40; }
-    if(sc.say){ ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 36px '+F; ctx.fillText('말',M,y); y+=58; var sy=wordFit(ctx,'“'+sc.say+'”',VW-M*2,7,[54,48,44,40],'500'); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='500 '+sy.size+'px '+F; lines(ctx,sy.lines.slice(0,7),M,y,Math.round(sy.size*1.5)); }
+    ctx.fillStyle=col; rr(ctx,M,110,150,84,42); ctx.fill(); ctx.fillStyle='#fff'; ctx.font='800 46px '+F; ctx.textAlign='center'; ctx.fillText((i+1)+' / '+n,M+75,128); ctx.textAlign='left';
+    if(sc.time){ ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='600 42px '+F; ctx.fillText(sc.time,M+180,130); }
+    ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=4; ctx.setLineDash([18,14]); rr(ctx,M,240,VW-M*2,900,36); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 34px '+F; ctx.fillText('화면',M+40,272);
+    var w=wordFit(ctx,sc.shot||'(화면 설명 없음)',VW-M*2-80,7,[54,48,44,40,36],'600'), lh=Math.round(w.size*1.42), y=330; ctx.fillStyle='#fff'; ctx.font='600 '+w.size+'px '+F; lines(ctx,w.lines.slice(0,7),M+40,y,lh); y+=lh*Math.min(7,w.lines.length)+34;
+    if(sc.design&&y<960){ ctx.fillStyle=st.hi; ctx.font='700 34px '+F; ctx.fillText('디자인',M+40,y); y+=52; var d=wordFit(ctx,sc.design,VW-M*2-80,5,[40,36,32],'500'), dl=Math.round(d.size*1.45), mx=Math.max(1,Math.floor((1120-y)/dl)); ctx.fillStyle='rgba(255,255,255,.82)'; ctx.font='500 '+d.size+'px '+F; lines(ctx,d.lines.slice(0,mx),M+40,y,dl); }
+    capDraw(ctx,VW,VH*0.7,sc.cap,sc.hi,st,1,null); ctx.textAlign='left'; ctx.textBaseline='top';
+    if(sc.say){ ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='700 34px '+F; ctx.fillText('말',M,1520); var sy=wordFit(ctx,'“'+sc.say+'”',VW-M*2,5,[50,46,42,38],'500'); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='500 '+sy.size+'px '+F; lines(ctx,sy.lines.slice(0,5),M,1572,Math.round(sy.size*1.45)); }
     return cv; }
   window.lfCards={ parse:parse,
     caption:caption, capTimes:capTimes,
-    shScenes:shScenes, shBoard:function(script,o){ var S=shScenes(script); return S.map(function(s,i){ return shDraw(s,i,S.length,o||{}); }); },
+    shScenes:shScenes, capStyle:capStyle, shBoard:function(script,o){ var S=shScenes(script), st=capStyle(script); o=o||{}; o.style=st; return S.map(function(s,i){ return shDraw(s,i,S.length,o); }); },
     ttScenes:ttScenes, ttFrames:function(text,o){ var S=ttScenes(text); if(S.length<3) return []; return S.map(function(s,i){ return ttDraw(s,i,S.length,o||{}); }); },
     daangn:dgParts, daangnBanner:dgBanner,
     video:video,
