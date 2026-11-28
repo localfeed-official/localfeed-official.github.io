@@ -162,7 +162,10 @@
           var enc=new VideoEncoder({output:function(ch,meta){ mux.addVideoChunk(ch,meta); },error:function(e){ fail('영상을 만들다 멈췄어요: '+e.message); }});
           enc.configure({codec:codec,width:W,height:H,bitrate:W>=1080?7000000:4500000,framerate:fps});
           var st=capStyle(script);
-          function drawCap(t){ var c=null; for(var i=0;i<caps.length;i++) if(t>=caps[i].a&&t<caps[i].b){ c=caps[i]; break; } if(!c) return; if(c.chips&&c.chips.length) chipsDraw(ctx,W,H,c.chips,(t-c.a)/Math.max(0.1,c.b-c.a)); if(!c.cap) return;
+          var OV={}; (o.overlays||[]).forEach(function(v){ OV[v.n]=v; });   // 일러스트·단색 장면: 그 구간은 영상 위를 그림으로 덮는다(소리는 그대로)
+          function drawCap(t){ var c=null, ci=-1; for(var i=0;i<caps.length;i++) if(t>=caps[i].a&&t<caps[i].b){ c=caps[i]; ci=i; break; } if(!c) return;
+            var ov=OV[ci]; if(ov){ var p=(t-c.a)/Math.max(0.1,c.b-c.a), al=Math.min(1,(t-c.a)/0.15,(c.b-t)/0.15+0.001); ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,al)); ctx.fillStyle='#16203a'; ctx.fillRect(0,0,W,H);
+              if(ov.kind==='art'&&ov.img){ var im=ov.img, k=Math.max(W/im.width,H/im.height)*(1+0.05*p), w2=im.width*k, h2=im.height*k; ctx.drawImage(im,(W-w2)/2,(H-h2)/2,w2,h2); } ctx.restore(); } if(c.chips&&c.chips.length) chipsDraw(ctx,W,H,c.chips,(t-c.a)/Math.max(0.1,c.b-c.a)); if(!c.cap) return;
             capDraw(ctx,W,H*0.7,c.cap,c.hi,st,Math.min(1,(t-c.a)/0.12),lay); }
           var dec=new VideoDecoder({output:function(fr){ if(dead){ fr.close(); return; } if(t0===null) t0=fr.timestamp; var ts=fr.timestamp-t0;
               ctx.drawImage(fr,0,0,W,H); drawCap(ts/1e6); var vf=new VideoFrame(cv,{timestamp:ts,duration:fr.duration||Math.round(1e6/fps)}); fr.close();
