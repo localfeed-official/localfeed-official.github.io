@@ -288,12 +288,12 @@
   };
   // 사람이 나오는 쇼츠 제작 판: 고르고 확인하는 곳. 분석·대본·장면 그림·영상은 Claude 대화에서 만들어 '쇼츠' 탭에 적는다.
   function whoHtml(s){ var w=(D.presenters||{})[s.code]||{state:''}, c=esc(s.code), busy='<div class="lfload inl"><i></i><i></i><i></i><small>', mins=w.at?Math.max(0,Math.round((Date.now()-w.at)/60000)):0;
-    var make='<button class="btn sm'+(w.state==='ready'?' gray':'')+'" data-who="make" data-store="'+c+'">'+(w.state==='cands'?'후보 다시 만들기':'가상 인물 만들기')+'</button><button class="btn sm gray" data-whoup="'+c+'|own">본인 사진으로 만들기</button><button class="btn sm gray" data-whoup="'+c+'|character">만들어 둔 캐릭터 그림 올리기</button>';
+    var make='<button class="btn sm'+(w.state==='ready'?' gray':'')+'" data-who="make" data-store="'+c+'">'+(w.state==='cands'?'후보 다시 만들기':'가상 인물 만들기')+'</button><button class="btn sm gray" data-whoup="'+c+'|own">본인 사진 그대로 등록</button><button class="btn sm gray" data-whoref="'+c+'">참고 사진으로 만들기</button>';
     var body=w.state==='ready'?'<div class="line"><div style="display:flex;gap:12px;align-items:center">'+(w.portrait?'<img src="'+esc(w.portrait)+'" alt="" style="width:72px;height:96px;object-fit:cover;border-radius:10px">':'')+'<div class="g"><b>'+(w.kind==='own'?'대표님 본인':'가상 인물')+'</b><small>'+esc(w.desc)+' · 모든 쇼츠의 모든 장면에 이 사람이 나와요.</small></div></div><div class="acts">'+make+'</div></div>'
       :w.state==='cands_wait'?busy+'후보 4명을 만드는 중이에요. 1~2분쯤 걸려요.</small></div>'
       :w.state==='train'?busy+'이 얼굴을 출연자로 등록하는 중이에요'+(mins?' ('+mins+'분째'+(w.last?', 상태 '+esc(w.last):'')+')':'')+'. 처음 한 번만 하는 일이고 5~20분쯤 걸릴 수 있어요. 창을 닫아도 계속돼요.</small></div><div class="acts"><button class="btn sm gray" data-who="reset" data-store="'+c+'">그만두고 다시 정하기</button></div>'
       :w.state==='cands'?'<small>마음에 드는 사람을 골라 주세요. 고른 얼굴이 앞으로 모든 쇼츠에 나와요.</small><div class="wm">'+w.cands.map(function(u,i){return '<div style="text-align:center"><img src="'+esc(u)+'" alt="" style="height:240px;border-radius:10px"><div><button class="btn sm" style="margin-top:6px" data-whopick="'+c+'|'+i+'">이 사람으로</button></div></div>';}).join('')+'</div><div class="acts" style="margin-top:8px">'+make+'</div>'
-      :'<small>쇼츠에 나올 사람을 한 번 정해 두면, 어느 컷에서나 같은 사람으로 만들어요. 가상 인물을 만들거나 대표님 본인 사진(얼굴이 또렷한 사진 1~6장)을 올려 주세요.</small><div class="acts" style="margin-top:8px">'+make+'</div>';
+      :'<small>쇼츠에 나올 사람을 한 번 정해 두면, 어느 컷에서나 같은 사람으로 만들어요. 글로 설명해 가상 인물을 만들거나, 참고 사진 한 장에 바꿀 점을 적어 만들거나, 대표님 본인 사진(얼굴이 또렷한 사진 1~6장)을 그대로 등록할 수 있어요.</small><div class="acts" style="margin-top:8px">'+make+'</div>';
     return '<div class="wt"><div class="wh"><b>출연자</b><span><span class="chip '+(w.state==='ready'?'ok':'soft')+'">'+(w.state==='ready'?'정해짐':w.state?'준비 중':'아직 없음')+'</span></span></div>'+(w.err?'<div class="caution" style="margin:8px 0">'+esc(w.err)+'</div>':'')+body+'</div>'; }
   function shortsHtml(s){ var L=(D.shorts||[]).filter(function(x){return x.store===s.code;}), ST=['추천','선택','기획','기획 확정','스토리보드','제작 요청','완성','게시'];
     var next={'추천':'마음에 드는 참고 영상을 골라 주세요.','선택':'고른 참고 영상을 내려받아 여기에 올려 주세요. 장면을 뽑아 구조를 분석하고 로컬피드 대본을 써요(1~2분, 작성 비용이 들어요). 영상 파일은 저장하지 않아요.','기획':'대본을 읽고 좋으면 스토리보드를 눌러 주세요. 장면마다 화면·자막·말을 한 장씩 그려서 보여 줘요.','기획 확정':'스토리보드를 그리는 중이에요.','스토리보드':'글자 스토리보드가 좋으면 실제 장면 그림을 만들어 보세요(한 장에 몇 원). 그림까지 좋으면 영상을 만들어요. 영상은 1초에 약 200~600원이 들어요.','제작 요청':'영상을 만드는 중이에요. 보통 3~10분 걸려요. 이 창을 열어 두면 끝났을 때 바로 보여요.','완성':'영상을 확인하고 자막 넣기를 눌러 주세요. 대본의 자막을 장면 시간에 맞춰 얹어요(비용 없음). 그다음 틱톡·인스타에 올리고, 올릴 때 앱의 AI 생성 표시를 켭니다.','게시':'올린 영상이에요.'};
@@ -465,6 +465,17 @@
       if(w.state==='ready'&&!window.confirm('출연자를 바꿀까요? 앞으로 만드는 쇼츠부터 새 사람이 나와요.')) return;
       var v=window.prompt('어떤 사람으로 할까요? 나이대, 성별, 머리, 인상을 적어 주세요. 지어낸 인물로 만들어요(실제 사람·유명인을 닮게 만들지 않아요).', w.kind==='character'&&w.desc?w.desc:'30대 초반 한국인 여성, 어깨 길이 검은 머리, 편안하고 믿음 가는 인상'); if(v===null||!v.trim()) return;
       call({action:'admin_shorts',what:'who_make',store:st,value:v.trim()},b); };});
+    function shrink(f){ return new Promise(function(res,rej){ var im=new Image(), u=URL.createObjectURL(f); im.onload=function(){ var k=Math.min(1,1280/Math.max(im.width,im.height)), cv=document.createElement('canvas'); cv.width=Math.round(im.width*k); cv.height=Math.round(im.height*k); cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); URL.revokeObjectURL(u); res(cv.toDataURL('image/jpeg',0.9).split(',')[1]); }; im.onerror=function(){ URL.revokeObjectURL(u); rej(new Error('사진을 읽지 못했어요. JPG나 PNG로 올려 주세요.')); }; im.src=u; }); }
+    [].forEach.call(document.querySelectorAll('[data-whoref]'),function(b){ if(BUSY.who) b.disabled=true; b.onclick=function(){ var st=b.dataset.whoref, w=(D.presenters||{})[st]||{};
+      if(w.state==='ready'&&!window.confirm('출연자를 바꿀까요? 앞으로 만드는 쇼츠부터 새 사람이 나와요.')) return;
+      if(!window.confirm('참고 사진은 대표님 본인 사진이나 직접 만든 캐릭터 그림만 올려 주세요. 연예인이나 다른 사람의 사진은 올리지 마세요(그 사람을 닮은 얼굴이 광고에 나오게 됩니다).\n\n사진을 고른 뒤 어떻게 바꿀지 적으면, 그 사진을 참고해 후보 4명을 만들어요.')) return;
+      var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+      inp.onchange=function(){ var f=(inp.files||[])[0]; if(!f) return;
+        var v=window.prompt('이 사진을 참고해서 어떻게 만들까요? 바꿀 점을 적어 주세요.','이 사람의 분위기와 인상은 그대로, 아이보리 니트를 입고 밝은 사무실에서 정면을 보는 모습'); if(v===null||!v.trim()) return;
+        BUSY.who=true; render(); var J=job('출연자: 참고 사진을 올리는 중…');
+        shrink(f).then(function(d){ return _api({action:'admin_shorts',k:K,what:'who_make',store:st,value:JSON.stringify({desc:v.trim(),img:d})}); }).then(function(r){ if(!r.ok) throw new Error(r.error); D=norm(r); BUSY.who=false; J.end(); render(); say('참고 사진으로 후보를 만드는 중이에요.',true); })
+        .catch(function(e){ BUSY.who=false; J.end(); render(); if(/^LOGIN/.test(e.message)) return logout(true); say('출연자: '+e.message); }); };
+      inp.click(); };});
     [].forEach.call(document.querySelectorAll('[data-whopick]'),function(b){b.onclick=function(){ var a=b.dataset.whopick.split('|'); if(!window.confirm('이 사람을 출연자로 정할까요?')) return; call({action:'admin_shorts',what:'who_pick',store:a[0],value:a[1]},b); };});
     [].forEach.call(document.querySelectorAll('[data-whoup]'),function(b){ if(BUSY.who) b.disabled=true; b.onclick=function(){ var wa=b.dataset.whoup.split('|'), st=wa[0], kind=wa[1];
       if(!window.confirm(kind==='own'?'사진 속 사람이 대표님 본인이고, 이 얼굴로 쇼츠 영상을 만드는 데 동의하시나요? 다른 사람의 사진은 올리지 마세요.\n\n사진은 이 매장 폴더에 두고, 얼굴을 등록하기 위해 영상 제작 서비스(힉스필드)로 보냅니다.':'직접 만든 가상 인물 그림만 올려 주세요(같은 캐릭터 1~6장). 연예인이나 다른 사람의 사진, 남이 만든 캐릭터는 올리지 마세요.\n\n그림은 이 매장 폴더에 두고, 얼굴을 등록하기 위해 영상 제작 서비스(힉스필드)로 보냅니다.')) return;
