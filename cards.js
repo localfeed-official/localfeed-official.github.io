@@ -235,7 +235,7 @@
     out.forEach(function(o){ var h=o.cap.match(/<\s*(노란색|강조)\s*>([^<]*)<\s*\/\s*(노란색|강조)\s*>/); o.hi=h?h[2].trim():''; o.cap=o.cap.replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(); o.chips=chipList(o); });
     return out.filter(function(o){ return o.shot||o.say||o.cap; }).slice(0,10); }
   // 채널 글자 칩: 앱 로고는 그리지 않고, 채널 이름을 그 채널 색 칩으로 띄운다. "글자: 인스타 · 스레드 · 틱톡" 줄이 있으면 그대로, 없으면 화면 설명에 채널 이름이 셋 이상 나올 때 나온 순서대로 만든다
-  var CH=[['인스타그램','#E1306C'],['인스타','#E1306C'],['스레드','#000000'],['틱톡','#FE2C55'],['네이버 블로그','#03C75A'],['블로그','#03C75A'],['당근','#FF6F0F'],['유튜브','#FF0000'],['카카오톡','#FEE500'],['카카오','#FEE500'],['페이스북','#1877F2'],['네이버','#03C75A']];
+  var CH=[['인스타그램','#E1306C'],['인스타','#E1306C'],['스레드','#000000'],['틱톡','#010101'],['네이버 블로그','#03C75A'],['블로그','#03C75A'],['당근','#FF6F0F'],['유튜브','#FF0000'],['카카오톡','#FEE500'],['카카오','#FEE500'],['페이스북','#1877F2'],['네이버','#03C75A']];
   function chColor(t){ for(var i=0;i<CH.length;i++) if(t.indexOf(CH[i][0])>=0) return CH[i][1]; return ''; }
   function chipList(o){ var L=[]; if(o.words){ L=o.words.split(/\s*[·,，、\/]\s*/).map(function(t){return t.replace(/<[^>]*>/g,'').trim();}).filter(Boolean).slice(0,6); }
     else { var t=o.shot||'', hit=[]; CH.forEach(function(c){ var i=t.indexOf(c[0]); if(i>=0&&!hit.some(function(h){ return h.i===i||h.c===c[1]; })) hit.push({i:i,t:c[0],c:c[1]}); }); if(hit.length>=3) L=hit.sort(function(a,b){return a.i-b.i;}).map(function(h){return h.t;}).slice(0,6); }
@@ -245,7 +245,8 @@
     ctx.save(); ctx.font='800 '+z+'px '+F; ctx.textAlign='center'; ctx.textBaseline='middle';
     chips.forEach(function(c,i){ var k=p==null?1:Math.max(0,Math.min(1,(p-(i*0.7/n))/0.06)); if(k<=0) return; var w=ctx.measureText(c.t).width+z*1.5, sc=0.82+0.18*k, cy=y0+i*(ph+gap)+ph/2, dark=c.c==='#FEE500';
       ctx.save(); ctx.globalAlpha=k; ctx.translate(W/2,cy); ctx.scale(sc,sc); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=z*0.3; ctx.shadowOffsetY=z*0.08; ctx.fillStyle=c.c||'rgba(255,255,255,.96)'; rr(ctx,-w/2,-ph/2,w,ph,ph/2); ctx.fill(); ctx.shadowColor='transparent';
-      if(c.c==='#000000'){ ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=Math.max(2,z*0.05); rr(ctx,-w/2,-ph/2,w,ph,ph/2); ctx.stroke(); }
+      if(c.c==='#000000'||c.c==='#010101'){ ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=Math.max(2,z*0.05); rr(ctx,-w/2,-ph/2,w,ph,ph/2); ctx.stroke(); }
+      if(c.c==='#010101'){ var d=Math.max(2,z*0.045); ctx.fillStyle='#25F4EE'; ctx.fillText(c.t,-d,z*0.04-d*0.5); ctx.fillStyle='#FE2C55'; ctx.fillText(c.t,d,z*0.04+d*0.5); }   // 틱톡: 검은 바탕에 청록·빨강이 살짝 어긋난 흰 글씨
       ctx.fillStyle=(!c.c||dark)?'#191F28':'#fff'; ctx.fillText(c.t,0,z*0.04); ctx.restore(); });
     ctx.restore(); }
   // 자막 모양: 대본이 "검은 … 바"를 말하면 검은 반투명 바 위 흰 글씨, 아니면 검은 테두리 흰 글씨. 강조색은 대본에 적힌 #색, 없으면 노랑
